@@ -1,0 +1,78 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Soundtrack Credit · 불이 켜져도, 여운은 꺼지지 않게</title>
+<meta name="description" content="티켓 바코드 한 번으로 날짜·날씨·좌석·포스터를 저장하고, OST와 촬영지, 30초 음성 메모까지 남기는 스마트 시네마 아카이브 링 & 태그. 멤버십 월 10,000원.">
+<meta name="theme-color" content="#0A0907">
+<meta property="og:type" content="website">
+<meta property="og:title" content="Soundtrack Credit · 시네필을 위한 스마트 시네마 아카이브">
+<meta property="og:description" content="엔딩 크레딧과 OST의 여운까지 기록하는 링 & 태그. #시네필기록 #영화OST여운 #디지털티켓북">
+<meta property="og:image" content="og.png">
+<meta name="twitter:card" content="summary_large_image">
+<link rel="icon" href="favicon.svg" type="image/svg+xml">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Nanum+Myeongjo:wght@400;700;800&family=IBM+Plex+Sans+KR:wght@300;400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+</style>
+<style>
+body{margin:0}
+@media (max-width: 640px){.rc-grid{gap:6px !important}.rc-grid [style*="height: 148px"]{height:96px !important}}
+</style>
+<style>
+body{margin:0;background:#0A0907}
+a{color:#E9B04A}a:hover{color:#F6CF84}
+.fx-root{word-break:keep-all;overflow-wrap:break-word}
+@keyframes fxRoll{from{transform:translateY(0)}to{transform:translateY(-50%)}}
+.fx-roll{animation:fxRoll 30s linear infinite}
+.fx-fade{transition:background-color .6s ease,color .6s ease,border-color .6s ease}
+@keyframes fxEq{0%,100%{transform:scaleY(.35)}50%{transform:scaleY(1)}}
+.fx-eq span{display:block;width:3px;height:14px;border-radius:2px;transform-origin:bottom;transform:scaleY(.35)}
+.fx-eq.on span{animation:fxEq .9s ease-in-out infinite}
+.fx-eq.on span:nth-child(2){animation-delay:.2s}.fx-eq.on span:nth-child(3){animation-delay:.45s}.fx-eq.on span:nth-child(4){animation-delay:.1s}
+.fx-menu-btn{display:none !important}
+.fx-navbar > a,.fx-links > a{display:inline-flex;align-items:center;min-height:44px}
+@media (prefers-reduced-motion: reduce){.fx-roll{animation:none}.fx-fade{transition:none}.fx-eq.on span{animation:none;transform:scaleY(.7)}}
+@media (max-width: 1080px){
+  .fx-links{display:none !important}
+  .fx-links.fx-open{display:flex !important;flex-basis:100%;flex-direction:column;align-items:stretch !important;gap:6px !important;padding:8px 4px 4px}
+  .fx-links.fx-open a{padding:12px 8px}
+  .fx-menu-btn{display:inline-flex !important}
+  .fx-navbar{border-radius:24px !important}
+}
+@media (max-width: 640px){
+  .fx-root section,.fx-root header{padding-left:16px !important;padding-right:16px !important}
+  .fx-root section{padding-top:72px !important;padding-bottom:72px !important}
+  .fx-root section.fx-tight{padding-top:40px !important;padding-bottom:0 !important}
+  .fx-root section.fx-flush{padding:0 !important}
+  .fx-stage{height:auto !important;display:flex;flex-direction:column;gap:14px}
+  .fx-stage > *{position:static !important;width:100% !important;max-width:none !important;box-sizing:border-box;transform:none !important}
+  .fx-deco{display:none !important}
+  .fx-shows{grid-template-columns:repeat(5,104px) !important;overflow-x:auto;padding-bottom:6px}
+  .fx-panel{padding:20px !important;min-height:0 !important}
+  .fx-gap{gap:40px !important}
+  .fx-bgm-sub{display:none !important}
+}
+</style>
+<style>
+html{scroll-behavior:smooth}
+@media (prefers-reduced-motion: reduce){html{scroll-behavior:auto}}
+section[id],footer[id]{scroll-margin-top:96px}
+.sc-join-msg{margin:14px 0 0;font-size:14px;line-height:1.6;min-height:22px;color:#E9B04A;text-align:center}
+</style>
+<script>
+  /* 사전 알림 폼을 받을 주소 (예: Formspree, Google Apps Script). 비워 두면 안내 문구만 표시합니다. */
+  window.SC_FORM_ENDPOINT = '';
+</script>
+</head>
+<body>
+<noscript><p style="color:#F3EBDD;padding:24px;font-family:sans-serif">이 페이지는 JavaScript가 켜져 있어야 보입니다.</p></noscript>
+<div id="app"></div>
+<script src="runtime.js"></script>
+<script src="app.js"></script>
+<script src="form.js"></script>
+</body>
+</html>
