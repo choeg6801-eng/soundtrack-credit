@@ -46,7 +46,7 @@ export function Book() {
           <I.ticket />
           <h2>아직 기록된 티켓이 없어요</h2>
           <p>오늘 본 영화의 티켓 바코드를 스캔하거나 영화 제목으로 검색해서 첫 크레딧을 남겨 보세요.</p>
-          <a className="btn primary" href="#/add"><I.plus />첫 티켓 등록하기</a>
+          <div className="row" style={{ justifyContent: 'center' }}><a className="btn primary" href="#/add"><I.plus />첫 티켓 등록하기</a><a className="btn" href="#/recommend"><I.spark />취향으로 영화 추천 받기</a></div>
         </div>
       ) : (
         <>

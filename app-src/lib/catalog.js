@@ -52,3 +52,31 @@ export function recommendFromCatalog(tickets) {
   out.forEach((m) => { m.match = Math.round(55 + 43 * (m.score / top)); });
   return out;
 }
+
+// ── 취향으로 찾기 ───────────────────────────
+export const GENRE_CHOICES = ['로맨스', '드라마', '음악', '코미디', '판타지', 'SF', '모험', '액션', '애니메이션', '가족', '스릴러', '미스터리', '범죄', '역사', '공포', '다큐멘터리'];
+
+// 무드를 고르면 어울리는 장르로 바꿔서 함께 찾습니다
+export const MOOD_GENRES = {
+  설렘: ['로맨스', '음악'], 아련함: ['드라마', '로맨스'], 포근함: ['가족', '애니메이션', '코미디'], 그리움: ['드라마'],
+  경이: ['SF', '판타지', '모험'], 긴장: ['스릴러', '액션'], 청량: ['음악', '코미디'], 위로: ['드라마', '가족'],
+};
+
+export function tasteGenres(genres, moods) {
+  const out = [...genres];
+  moods.forEach((m) => (MOOD_GENRES[m] || []).forEach((g) => { if (!out.includes(g)) out.push(g); }));
+  return out.slice(0, 6);
+}
+
+export function discoverFromCatalog(genres, moods, exclude) {
+  const ex = new Set(exclude.map(Number));
+  const all = tasteGenres(genres, moods);
+  const out = CATALOG.filter((m) => !ex.has(m.id)).map((m) => {
+    const sg = m.genres.filter((g) => all.includes(g));
+    const sm = m.moods.filter((x) => moods.includes(x));
+    return { ...m, sharedGenres: sg, sharedMoods: sm, score: sg.length * 2 + sm.length * 3 };
+  }).filter((m) => m.score > 0).sort((a, b) => b.score - a.score);
+  const top = out.length ? out[0].score : 1;
+  out.forEach((m) => { m.match = Math.round(55 + 43 * (m.score / top)); });
+  return out;
+}

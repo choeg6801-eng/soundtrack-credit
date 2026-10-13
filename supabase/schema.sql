@@ -12,8 +12,10 @@ create table if not exists public.profiles (
   plan        text not null default 'beta' check (plan in ('beta', 'free', 'member')),
   plan_until  timestamptz,
   marketing_opt_in boolean not null default false,
+  taste       jsonb not null default '{}'::jsonb check (pg_column_size(taste) <= 2000),  -- 고른 장르·무드
   created_at  timestamptz not null default now()
 );
+alter table public.profiles add column if not exists taste jsonb not null default '{}'::jsonb check (pg_column_size(taste) <= 2000);
 
 create or replace function public.handle_new_user()
 returns trigger
@@ -260,7 +262,7 @@ grant  execute on function public.join_waitlist(text, text) to anon, authenticat
 
 -- 회원이 직접 바꾸면 안 되는 칸(요금제)은 수정 권한에서 제외
 revoke insert, update, delete on public.profiles from anon, authenticated;
-grant  update (nickname, theme, marketing_opt_in) on public.profiles to authenticated;
+grant  update (nickname, theme, marketing_opt_in, taste) on public.profiles to authenticated;
 
 -- ─────────────────────────────────────────────
 -- 6) 보이스 메모 저장소 (비공개 버킷, 본인 폴더만)
