@@ -1,0 +1,16 @@
+{
+  "name": "soundtrack-credit-app",
+  "private": true,
+  "description": "Soundtrack Credit 웹앱 소스. 빌드 결과는 ../app/app.js 로 나갑니다.",
+  "scripts": {
+    "build": "esbuild main.jsx --bundle --minify --format=esm --target=es2020 --jsx=automatic --define:process.env.NODE_ENV=\\\"production\\\" --outfile=../app/app.js",
+    "watch": "esbuild main.jsx --bundle --format=esm --target=es2020 --jsx=automatic --sourcemap --outfile=../app/app.js --watch"
+  },
+  "dependencies": {
+    "react": "19.2.8",
+    "react-dom": "19.2.8"
+  },
+  "devDependencies": {
+    "esbuild": "0.28.2"
+  }
+}
