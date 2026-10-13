@@ -64,7 +64,12 @@ section[id],footer[id]{scroll-margin-top:96px}
 .sc-join-msg{margin:14px 0 0;font-size:14px;line-height:1.6;min-height:22px;color:#E9B04A;text-align:center}
 </style>
 <script>
-  /* 사전 알림 폼을 받을 주소 (예: Formspree, Google Apps Script). 비워 두면 안내 문구만 표시합니다. */
+  /* 주소 끝에 #voice 같은 앵커가 붙어 있어도 첫 화면(맨 위)에서 시작합니다. */
+  if ('scrollRestoration' in history) history.scrollRestoration = 'manual';
+  if (location.hash) history.replaceState(null, '', location.pathname + location.search);
+</script>
+<script>
+  /* 사전 알림은 Supabase(waitlist 표)에 저장됩니다. Supabase 없이 쓰려면 여기에 Formspree 등 폼 주소를 넣으세요. */
   window.SC_FORM_ENDPOINT = '';
 </script>
 </head>

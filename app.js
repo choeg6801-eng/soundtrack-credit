@@ -1245,6 +1245,8 @@ Comp_Main.prototype.__tpl = function (v) {
               "링 & 태그"),
             h("a", {"href": "#pricing", "style": "color: "+(v.T?.muted ?? "")+"; text-decoration: none"},
               "멤버십"),
+            h("a", {"href": "/app/", "style": "color: "+(v.T?.accentText ?? "")+"; text-decoration: none; font-weight: 600"},
+              "로그인"),
             h("div", {"role": "group", "aria-label": "화면 모드", "style": "display: flex; gap: 4px; padding: 4px; border-radius: 999px; background: "+(v.T?.soft ?? "")},
               h("button", {"onClick": v.setDark, "aria-pressed": v.darkPressed, "style": v.darkBtn},
                 "상영 모드"),
@@ -1267,7 +1269,7 @@ Comp_Main.prototype.__tpl = function (v) {
             h("p", {"style": "margin: 30px 0 0; max-width: 520px; font-size: 19px; line-height: 1.8; color: "+(v.T?.muted ?? "")},
               "막 내려간 스크린의 여운과 OST를 영원히 재생하는 기록. 링을 한 번 태그하면 포스터·OST·촬영지·나의 목소리가 한 장의 크레딧으로 남고, 그 여운을 닮은 다음 영화까지 찾아 드려요."),
             h("div", {"style": "margin-top: 36px; display: flex; flex-wrap: wrap; gap: 12px; align-items: center"},
-              h("a", {"href": "#pricing", "style": "display: inline-flex; align-items: center; gap: 10px; min-height: 56px; padding: 0 28px; background: "+(v.accent ?? "")+"; color: #16130F; border-radius: 999px; font-weight: 700; text-decoration: none; font-size: 16px"},
+              h("a", {"href": "/app/", "style": "display: inline-flex; align-items: center; gap: 10px; min-height: 56px; padding: 0 28px; background: "+(v.accent ?? "")+"; color: #16130F; border-radius: 999px; font-weight: 700; text-decoration: none; font-size: 16px"},
                 "월 10,000원으로 시작하기"),
               h("button", {"onClick": v.toggleMode, "aria-pressed": v.lightPressed, "style": v.switchStyle},
                 h("span", {"style": v.switchTrack},
@@ -1787,7 +1789,7 @@ Comp_Main.prototype.__tpl = function (v) {
           h("label", {"for": "fx-agree", "style": "margin-top: 14px; display: flex; gap: 10px; align-items: flex-start; font-size: 13px; line-height: 1.6; color: #B8AE9C; cursor: pointer"},
             h("input", {"id": "fx-agree", "type": "checkbox", "style": "width: 20px; height: 20px; margin: 1px 0 0; accent-color: #E9B04A; flex: none"}),
             "(필수) 출시 알림 발송을 위한 이메일 수집·이용에 동의합니다. ",
-            h("a", {"href": "#privacy", "style": "color: #E3D8C4"},
+            h("a", {"href": "/privacy.html", "style": "color: #E3D8C4"},
               "개인정보처리방침")))),
       h("footer", {"id": "privacy", "style": "background: #0A0907; border-top: 1px solid #1E1B16; padding: 44px 24px 96px"},
         h("div", {"style": "max-width: 1280px; margin: 0 auto; display: flex; flex-wrap: wrap; gap: 28px; justify-content: space-between; font-size: 13px; color: #B8AE9C; line-height: 1.8"},
@@ -1802,9 +1804,9 @@ Comp_Main.prototype.__tpl = function (v) {
             h("div", {},
               "통신판매업 신고 [제0000-지역-0000호] · [주소] · [고객센터 이메일]"),
             h("div", {"style": "margin-top: 4px; display: flex; gap: 16px"},
-              h("a", {"href": "#privacy", "style": "display: inline-flex; align-items: center; min-height: 44px; color: #E3D8C4"},
+              h("a", {"href": "/terms.html", "style": "display: inline-flex; align-items: center; min-height: 44px; color: #E3D8C4"},
                 "이용약관"),
-              h("a", {"href": "#privacy", "style": "display: inline-flex; align-items: center; min-height: 44px; color: #E3D8C4"},
+              h("a", {"href": "/privacy.html", "style": "display: inline-flex; align-items: center; min-height: 44px; color: #E3D8C4"},
                 "개인정보처리방침"))))));
 };
 
