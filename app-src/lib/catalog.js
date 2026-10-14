@@ -30,27 +30,41 @@ export function searchCatalog(q) {
   return CATALOG.filter((m) => norm(m.title).includes(t) || norm(m.originalTitle).includes(t));
 }
 
-// 기본 목록 안에서의 추천: 무드 ×3, 장르 ×2, 사운드 ×2 (랜딩 페이지의 추천 계산과 같은 방식)
-export function recommendFromCatalog(tickets) {
+// 기본 목록 안에서의 추천
+//  - 본 영화 하나하나와 무드(×3)·장르(×2, 최대 2개)·OST 스타일(×2)이 얼마나 겹치는지 계산
+//  - 여러 편과 겹칠수록 가산점, 저장한 취향 장르와 겹치면 가산점
+//  - 한 영화에 추천이 쏠리지 않도록 본 영화별로 번갈아 고릅니다
+export function recommendFromCatalog(tickets, tasteG = [], limit = 8) {
   const seen = new Set(tickets.map((t) => Number(t.movie_id)).filter(Boolean));
-  const seeds = tickets.map((t) => {
+  const seeds = tickets.slice(0, 12).map((t) => {
     const c = byId(t.movie_id);
-    return { title: t.title, moods: (t.moods && t.moods.length ? t.moods : c ? c.moods : []), genres: t.genres && t.genres.length ? t.genres : c ? c.genres : [], sound: c ? c.sound : null };
+    return { title: t.title, moods: t.moods && t.moods.length ? t.moods : c ? c.moods : [], genres: t.genres && t.genres.length ? t.genres : c ? c.genres : [], sound: c ? c.sound : null };
   });
   if (!seeds.length) return [];
-  const out = CATALOG.filter((m) => !seen.has(m.id)).map((m) => {
-    let best = { score: -1, seed: null, sharedMoods: [], sharedGenres: [] };
-    for (const s of seeds) {
+  const scored = CATALOG.filter((m) => !seen.has(m.id)).map((m) => {
+    const per = seeds.map((s) => {
       const sm = m.moods.filter((x) => s.moods.includes(x));
       const sg = m.genres.filter((x) => s.genres.includes(x));
-      const score = sm.length * 3 + Math.min(sg.length, 2) * 2 + (s.sound && s.sound === m.sound ? 2 : 0);
-      if (score > best.score) best = { score, seed: s.title, sharedMoods: sm, sharedGenres: sg };
-    }
-    return { ...m, score: best.score, becauseTitles: best.seed ? [best.seed] : [], sharedMoods: best.sharedMoods, sharedGenres: best.sharedGenres };
-  }).filter((m) => m.score > 0).sort((a, b) => b.score - a.score).slice(0, 8);
-  const top = out.length ? out[0].score : 1;
-  out.forEach((m) => { m.match = Math.round(55 + 43 * (m.score / top)); });
-  return out;
+      const sim = sm.length * 3 + Math.min(sg.length, 2) * 2 + (s.sound && s.sound === m.sound ? 2 : 0);
+      const max = Math.min(m.moods.length, Math.max(s.moods.length, 1)) * 3 + 4 + 2;
+      return { s, sm, sg, sim, ratio: sim / max };
+    }).sort((a, b) => b.sim - a.sim || b.ratio - a.ratio);
+    const best = per[0];
+    const support = per.slice(1).reduce((t, p) => t + p.sim, 0);
+    const tasteHit = m.genres.filter((g) => tasteG.includes(g));
+    const score = best.sim + support * 0.3 + tasteHit.length * 2;
+    const match = Math.min(97, Math.round(48 + 46 * best.ratio + Math.min(support, 6) + tasteHit.length * 2));
+    return { ...m, score, match, seed: best.s.title, becauseTitles: per.filter((p) => p.sim >= 3).map((p) => p.s.title).slice(0, 2), sharedMoods: best.sm, sharedGenres: [...new Set([...best.sg, ...tasteHit])] };
+  }).filter((m) => m.score >= 2);
+  if (!scored.length) return [];
+  scored.forEach((m) => { if (!m.becauseTitles.length) m.becauseTitles = [m.seed]; });
+  // 본 영화별로 줄 세운 뒤 번갈아 뽑기
+  const groups = seeds.map((s) => scored.filter((m) => m.seed === s.title).sort((a, b) => b.score - a.score));
+  const out = [];
+  for (let i = 0; out.length < limit && groups.some((g) => g.length > i); i++) {
+    groups.map((g) => g[i]).filter(Boolean).sort((a, b) => b.score - a.score).forEach((m) => { if (out.length < limit) out.push(m); });
+  }
+  return out.sort((a, b) => b.match - a.match || b.score - a.score);
 }
 
 // ── 취향으로 찾기 ───────────────────────────
@@ -68,15 +82,29 @@ export function tasteGenres(genres, moods) {
   return out.slice(0, 6);
 }
 
+export function moodGenres(moods, except = []) {
+  const out = [];
+  moods.forEach((m) => (MOOD_GENRES[m] || []).forEach((g) => { if (!out.includes(g) && !except.includes(g)) out.push(g); }));
+  return out;
+}
+
+// 고른 장르는 반드시 포함(여러 개면 모두 갖춘 영화가 먼저), 무드는 가산점
 export function discoverFromCatalog(genres, moods, exclude) {
   const ex = new Set(exclude.map(Number));
-  const all = tasteGenres(genres, moods);
-  const out = CATALOG.filter((m) => !ex.has(m.id)).map((m) => {
-    const sg = m.genres.filter((g) => all.includes(g));
+  const boost = moodGenres(moods, genres);
+  const must = genres.length ? genres : boost;
+  // 고르지 않은 애니메이션·가족 영화는 빼기 (서버 추천과 같은 규칙)
+  const chosen = [...genres, ...boost];
+  const niche = ['애니메이션', '가족'].filter((g) => !chosen.includes(g));
+  const out = CATALOG.filter((m) => !ex.has(m.id) && !m.genres.some((g) => niche.includes(g))).map((m) => {
+    const hit = must.filter((g) => m.genres.includes(g));
+    const full = genres.length > 0 && hit.length === genres.length;
+    const sb = boost.filter((g) => m.genres.includes(g));
     const sm = m.moods.filter((x) => moods.includes(x));
-    return { ...m, sharedGenres: sg, sharedMoods: sm, score: sg.length * 2 + sm.length * 3 };
-  }).filter((m) => m.score > 0).sort((a, b) => b.score - a.score);
+    const score = hit.length * 3 + (full ? 4 : 0) + sb.length * 1.5 + sm.length * 3;
+    return { ...m, sharedGenres: [...new Set([...hit, ...sb])], sharedMoods: sm, score, full, hit: hit.length };
+  }).filter((m) => m.hit > 0).sort((a, b) => b.score - a.score);
   const top = out.length ? out[0].score : 1;
-  out.forEach((m) => { m.match = Math.round(55 + 43 * (m.score / top)); });
+  out.forEach((m) => { m.match = Math.min(98, Math.round((m.full || !genres.length ? 70 : 52) + 28 * (m.score / top))); });
   return out;
 }

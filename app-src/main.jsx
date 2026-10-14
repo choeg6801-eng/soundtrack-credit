@@ -11,6 +11,8 @@ try {
 
 async function boot() {
   const config = (await server.config()) || { supabaseUrl: null, movies: false, accountDeletion: false };
+  // 설정 응답과 상관없이, 영화 서버가 실제로 응답하면 TMDB 기능을 켭니다
+  if (!config.movies) config.movies = Boolean(await server.movie(313369));
   const backend = config.supabaseUrl
     ? createSupabaseBackend({ url: config.supabaseUrl, anonKey: config.supabaseAnonKey })
     : createLocalBackend();

@@ -16,6 +16,6 @@ export const server = {
   search: (q) => get(`/api/movies?q=${encodeURIComponent(q)}`),
   movie: (id) => get(`/api/movies?id=${id}`),
   recommend: (ids, exclude, genres) => get(`/api/recommend?ids=${ids.join(',')}&exclude=${exclude.join(',')}&genres=${encodeURIComponent(genres.join(','))}`),
-  discover: (genres, exclude, page = 1) => get(`/api/discover?genres=${encodeURIComponent(genres.join(','))}&exclude=${exclude.join(',')}&page=${page}`),
+  discover: (genres, boost, exclude, page = 1) => get(`/api/discover?genres=${encodeURIComponent(genres.join(','))}&boost=${encodeURIComponent(boost.join(','))}&exclude=${exclude.join(',')}&page=${page}`),
   ost: (title, year) => get(`/api/ost?title=${encodeURIComponent(title)}${year ? `&year=${year}` : ''}`),
 };

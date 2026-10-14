@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useApp, Poster } from '../ui/kit.jsx';
 import { I } from '../ui/icons.jsx';
-import { recommendFromCatalog, discoverFromCatalog, tasteGenres, GENRE_CHOICES, MOODS } from '../lib/catalog.js';
+import { recommendFromCatalog, discoverFromCatalog, tasteGenres, moodGenres, GENRE_CHOICES, MOODS } from '../lib/catalog.js';
 import { server } from '../lib/server.js';
 import { count, links } from '../lib/util.js';
 
@@ -11,7 +11,7 @@ function RecCard({ m, reason }) {
       <Poster src={m.poster} title={m.title} />
       <div style={{ minWidth: 0 }}>
         <h3>{m.title}</h3>
-        <div className="faint tiny">{[m.year, (m.genres || []).slice(0, 2).join('·'), m.rating ? `평점 ${m.rating.toFixed(1)}` : null].filter(Boolean).join(' · ')}</div>
+        <div className="faint tiny">{[m.year, (m.genres || []).slice(0, 3).join('·'), m.rating ? `평점 ${m.rating.toFixed(1)}` : null].filter(Boolean).join(' · ')}</div>
         <div className="meter" aria-hidden="true"><i style={{ width: `${m.match}%` }} /></div>
         <div className="small"><b style={{ color: 'var(--accent-text)' }}>{m.match}%</b> <span className="muted">{reason}</span></div>
         <div className="tags">{[...(m.sharedMoods || []).map((x) => `${x} 무드`), ...(m.sharedGenres || []).slice(0, 2)].slice(0, 3).map((x) => <span key={x}>{x}</span>)}</div>
@@ -34,7 +34,7 @@ function FromHistory({ list, tasteG }) {
 
   useEffect(() => {
     let alive = true;
-    const local = () => { setRecs(recommendFromCatalog(list)); setSource('catalog'); };
+    const local = () => { setRecs(recommendFromCatalog(list, tasteG)); setSource('catalog'); };
     const seeds = list.filter((t) => t.movie_id).slice(0, 8);
     if (!config.movies || !seeds.length) { local(); return; }
     setRecs(null);
@@ -57,13 +57,13 @@ function FromHistory({ list, tasteG }) {
       <div className="recs">
         {recs.map((m) => <RecCard key={m.id} m={m} reason={m.becauseTitles && m.becauseTitles.length ? `‘${m.becauseTitles.slice(0, 2).join('’, ‘')}’의 여운을 좋아했다면` : '내 취향과 닮았어요'} />)}
       </div>
-      <p className="faint tiny" style={{ marginTop: 18 }}>{source === 'tmdb' ? '내가 본 영화마다 비슷한 영화를 모아, 여러 편에서 겹치고 내 장르 취향과 맞을수록 높게 매겼어요. 영화 정보 제공: TMDB' : '기본 영화 목록 안에서 무드(×3)·장르(×2)·OST 스타일(×2)이 겹치는 정도로 계산했어요. (TMDB를 연결하면 전체 영화에서 추천)'}</p>
+      <p className="faint tiny" style={{ marginTop: 18 }}>{source === 'tmdb' ? '내가 본 영화마다 비슷한 영화를 모아, 여러 편에서 겹치고 내 장르 취향과 맞을수록 높게 매겼어요. 영화 정보 제공: TMDB' : '지금은 기본 영화 15편 안에서만 골랐어요. 본 영화마다 무드·장르·OST 스타일이 닮은 영화를 번갈아 보여 줘요. (TMDB를 연결하면 전 세계 영화에서 추천)'}</p>
     </>
   );
 }
 
 // ── 취향으로 찾기 ───────────────────────────
-function FromTaste({ list }) {
+export function FromTaste({ list, title = '어떤 영화가 끌리세요?' }) {
   const { backend, config, profile, setProfile, toast } = useApp();
   const saved = (profile && profile.taste) || {};
   const [genres, setGenres] = useState(saved.genres || []);
@@ -84,7 +84,7 @@ function FromTaste({ list }) {
     setAsked({ genres: g, moods: m });
     let found = null;
     if (config.movies) {
-      const r = await server.discover(all, exclude, p);
+      const r = await server.discover(g, moodGenres(m, g), exclude, p);
       if (r && r.results) {
         found = r.results.map((x) => ({ ...x, sharedMoods: [] }));
         setMore(r.results.length >= 10 && p < 5);
@@ -100,14 +100,14 @@ function FromTaste({ list }) {
 
   const submit = async () => {
     run(genres, moods);
-    try { const p = await backend.updateProfile({ taste: { genres, moods } }); if (p) setProfile(p); } catch (e) { /* 저장 실패해도 추천은 보여 줌 */ }
+    try { const p = await backend.updateProfile({ taste: { genres, moods, done: true } }); if (p) setProfile(p); } catch (e) { /* 저장 실패해도 추천은 보여 줌 */ }
   };
 
   const label = [...asked.genres, ...asked.moods].slice(0, 3).join('·');
   return (
     <>
       <section className="card" aria-labelledby="taste-h" style={{ marginBottom: 18 }}>
-        <div className="card-title"><h2 id="taste-h"><I.heart />어떤 영화가 끌리세요?</h2></div>
+        <div className="card-title"><h2 id="taste-h"><I.heart />{title}</h2></div>
         <p className="faint small" style={{ margin: '0 0 8px' }}>장르</p>
         <div className="chips">{GENRE_CHOICES.map((g) => <button key={g} className="chip" aria-pressed={genres.includes(g)} onClick={() => toggle(setGenres)(g)}>{g}</button>)}</div>
         <p className="faint small" style={{ margin: '16px 0 8px' }}>보고 나서 남았으면 하는 여운</p>
@@ -120,7 +120,7 @@ function FromTaste({ list }) {
       </section>
       {recs === null ? (busy ? <Skeletons /> : null) : recs.length === 0 ? <p className="muted">맞는 영화를 찾지 못했어요. 다른 장르를 골라 보세요.</p> : (
         <>
-          <div className="recs">{recs.map((m) => <RecCard key={m.id} m={m} reason={`선택한 ‘${label}’ 취향과 맞아요`} />)}</div>
+          <div className="recs">{recs.map((m) => <RecCard key={m.id} m={m} reason={m.sharedGenres && m.sharedGenres.length ? `‘${m.sharedGenres.slice(0, 3).join('·')}’ 취향과 맞아요` : `선택한 ‘${label}’ 취향과 맞아요`} />)}</div>
           {more && <div style={{ textAlign: 'center', marginTop: 18 }}><button className="btn" disabled={busy} onClick={() => run(asked.genres, asked.moods, page + 1)}>{busy ? '불러오는 중…' : '더 보기'}</button></div>}
           <p className="faint tiny" style={{ marginTop: 18 }}>{config.movies ? 'TMDB 전체 영화 중 평점 7점 이상·많이 본 영화에서 골랐어요. 영화 정보 제공: TMDB' : '지금은 기본 영화 15편 안에서 찾았어요. TMDB를 연결하면 전 세계 영화에서 찾아 드려요.'}</p>
         </>

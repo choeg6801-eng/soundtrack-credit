@@ -8,6 +8,7 @@ import { TicketView } from './screens/TicketView.jsx';
 import { Recommend } from './screens/Recommend.jsx';
 import { Rings, Tap } from './screens/Rings.jsx';
 import { Settings } from './screens/Settings.jsx';
+import { Welcome } from './screens/Welcome.jsx';
 
 function parse(hash) {
   const raw = hash.replace(/^#/, '') || '/';
@@ -55,6 +56,14 @@ export function App({ backend, config, init }) {
     } catch (e) { /* 무시 */ }
   }, [user && user.id]); // 토큰 갱신 때마다 다시 불러오지 않도록 계정 ID 기준
 
+  // 기록도 취향도 없는 신규 회원은 첫 화면에서 취향 고르기로 안내 (한 번만)
+  useEffect(() => {
+    if (!user || !profile || tickets === null) return;
+    const t = profile.taste || {};
+    const fresh = tickets.length === 0 && !t.done && !(t.genres || []).length && !(t.moods || []).length;
+    if (fresh && (route.path === '/' || route.path === '')) go('/welcome');
+  }, [user && user.id, profile, tickets && tickets.length]);
+
   const theme = (profile && profile.theme) || document.documentElement.dataset.theme || 'dark';
   const setTheme = useCallback(async (t) => {
     document.documentElement.dataset.theme = t;
@@ -77,7 +86,8 @@ export function App({ backend, config, init }) {
   if (recovery) return <AppCtx.Provider value={ctx}><NewPassword onDone={() => setRecovery(false)} />{toastNode}</AppCtx.Provider>;
 
   let screen;
-  if (seg[0] === 'add') screen = <AddTicket query={query} />;
+  if (seg[0] === 'welcome') screen = <Welcome />;
+  else if (seg[0] === 'add') screen = <AddTicket query={query} />;
   else if (seg[0] === 'ticket' && seg[1]) screen = <TicketView id={seg[1]} query={query} />;
   else if (seg[0] === 'recommend') screen = <Recommend />;
   else if (seg[0] === 'rings') screen = <Rings />;
