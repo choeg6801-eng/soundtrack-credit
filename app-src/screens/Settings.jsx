@@ -51,7 +51,7 @@ export function Settings() {
         <hr className="sep" />
         <div className="row">
           <button className="btn sm" onClick={exportAll}>내 기록 내려받기 (JSON)</button>
-          <button className="btn sm" onClick={async () => { await backend.signOut(); go('/'); }}>로그아웃</button>
+          <button className="btn sm" onClick={async () => { await backend.signOut(); if (backend.mode === 'demo') go('/'); else location.href = '/'; }}>로그아웃</button>
           {demo && <button className="btn sm" onClick={async () => { await backend.reset(); location.reload(); }}>체험 데이터 초기화</button>}
           <button className="btn sm danger" onClick={() => setDel(true)}>{demo ? '체험 데이터 모두 삭제' : '회원 탈퇴'}</button>
         </div>

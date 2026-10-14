@@ -5,12 +5,12 @@ import { recommendFromCatalog, discoverFromCatalog, tasteGenres, moodGenres, GEN
 import { server } from '../lib/server.js';
 import { count, links } from '../lib/util.js';
 
-function RecCard({ m, reason }) {
+function RecCard({ m, reason, rank }) {
   return (
     <article className="rec-card">
       <Poster src={m.poster} title={m.title} />
       <div style={{ minWidth: 0 }}>
-        <h3>{m.title}</h3>
+        <h3>{rank ? <span style={{ color: 'var(--accent-text)', fontFamily: 'var(--mono)', fontSize: 13, marginRight: 6 }}>{rank}</span> : null}{m.title}</h3>
         <div className="faint tiny">{[m.year, (m.genres || []).slice(0, 3).join('·'), m.rating ? `평점 ${m.rating.toFixed(1)}` : null].filter(Boolean).join(' · ')}</div>
         <div className="meter" aria-hidden="true"><i style={{ width: `${m.match}%` }} /></div>
         <div className="small"><b style={{ color: 'var(--accent-text)' }}>{m.match}%</b> <span className="muted">{reason}</span></div>
@@ -24,6 +24,26 @@ function RecCard({ m, reason }) {
   );
 }
 
+const SORTS = [['match', '추천 높은 순'], ['rating', '평점 높은 순'], ['year', '최신 개봉 순']];
+function sortRecs(list, key) {
+  const by = {
+    match: (a, b) => (b.match || 0) - (a.match || 0) || (b.rating || 0) - (a.rating || 0),
+    rating: (a, b) => (b.rating || 0) - (a.rating || 0) || (b.match || 0) - (a.match || 0),
+    year: (a, b) => (b.year || 0) - (a.year || 0) || (b.match || 0) - (a.match || 0),
+  }[key];
+  return list.slice().sort(by);
+}
+function SortBar({ value, onChange, count, showRating }) {
+  return (
+    <div className="row" style={{ justifyContent: 'space-between', margin: '0 0 14px' }}>
+      <span className="faint small">{count}편 · {SORTS.find((x) => x[0] === value)[1]}</span>
+      <div className="chips" role="group" aria-label="정렬">
+        {SORTS.filter((x) => showRating || x[0] !== 'rating').map(([k, label]) => <button key={k} className="chip" style={{ minHeight: 36 }} aria-pressed={value === k} onClick={() => onChange(k)}>{label}</button>)}
+      </div>
+    </div>
+  );
+}
+
 const Skeletons = () => <div className="recs">{[0, 1, 2, 3].map((i) => <div key={i} className="skeleton" style={{ height: 170 }} />)}</div>;
 
 // ── 기록 기반 ───────────────────────────────
@@ -31,6 +51,7 @@ function FromHistory({ list, tasteG }) {
   const { config } = useApp();
   const [recs, setRecs] = useState(null);
   const [source, setSource] = useState('');
+  const [sort, setSort] = useState('match');
 
   useEffect(() => {
     let alive = true;
@@ -54,8 +75,9 @@ function FromHistory({ list, tasteG }) {
   if (!recs.length) return <p className="muted">지금은 추천할 영화를 찾지 못했어요. ‘취향으로 찾기’를 써 보세요.</p>;
   return (
     <>
+      <SortBar value={sort} onChange={setSort} count={recs.length} showRating={recs.some((m) => m.rating)} />
       <div className="recs">
-        {recs.map((m) => <RecCard key={m.id} m={m} reason={m.becauseTitles && m.becauseTitles.length ? `‘${m.becauseTitles.slice(0, 2).join('’, ‘')}’의 여운을 좋아했다면` : '내 취향과 닮았어요'} />)}
+        {sortRecs(recs, sort).map((m, i) => <RecCard key={m.id} m={m} rank={i + 1} reason={m.becauseTitles && m.becauseTitles.length ? `‘${m.becauseTitles.slice(0, 2).join('’, ‘')}’의 여운을 좋아했다면` : '내 취향과 닮았어요'} />)}
       </div>
       <p className="faint tiny" style={{ marginTop: 18 }}>{source === 'tmdb' ? '내가 본 영화마다 비슷한 영화를 모아, 여러 편에서 겹치고 내 장르 취향과 맞을수록 높게 매겼어요. 영화 정보 제공: TMDB' : '지금은 기본 영화 15편 안에서만 골랐어요. 본 영화마다 무드·장르·OST 스타일이 닮은 영화를 번갈아 보여 줘요. (TMDB를 연결하면 전 세계 영화에서 추천)'}</p>
     </>
@@ -73,6 +95,7 @@ export function FromTaste({ list, title = '어떤 영화가 끌리세요?' }) {
   const [page, setPage] = useState(1);
   const [more, setMore] = useState(false);
   const [asked, setAsked] = useState({ genres: [], moods: [] });
+  const [sort, setSort] = useState('match');
   const exclude = list.map((t) => t.movie_id).filter(Boolean);
   const toggle = (set) => (v) => set((x) => (x.includes(v) ? x.filter((y) => y !== v) : [...x, v]));
 
@@ -120,7 +143,8 @@ export function FromTaste({ list, title = '어떤 영화가 끌리세요?' }) {
       </section>
       {recs === null ? (busy ? <Skeletons /> : null) : recs.length === 0 ? <p className="muted">맞는 영화를 찾지 못했어요. 다른 장르를 골라 보세요.</p> : (
         <>
-          <div className="recs">{recs.map((m) => <RecCard key={m.id} m={m} reason={m.sharedGenres && m.sharedGenres.length ? `‘${m.sharedGenres.slice(0, 3).join('·')}’ 취향과 맞아요` : `선택한 ‘${label}’ 취향과 맞아요`} />)}</div>
+          <SortBar value={sort} onChange={setSort} count={recs.length} showRating={recs.some((m) => m.rating)} />
+          <div className="recs">{sortRecs(recs, sort).map((m, i) => <RecCard key={m.id} m={m} rank={i + 1} reason={m.sharedGenres && m.sharedGenres.length ? `‘${m.sharedGenres.slice(0, 3).join('·')}’ 취향과 맞아요` : `선택한 ‘${label}’ 취향과 맞아요`} />)}</div>
           {more && <div style={{ textAlign: 'center', marginTop: 18 }}><button className="btn" disabled={busy} onClick={() => run(asked.genres, asked.moods, page + 1)}>{busy ? '불러오는 중…' : '더 보기'}</button></div>}
           <p className="faint tiny" style={{ marginTop: 18 }}>{config.movies ? 'TMDB 전체 영화 중 평점 7점 이상·많이 본 영화에서 골랐어요. 영화 정보 제공: TMDB' : '지금은 기본 영화 15편 안에서 찾았어요. TMDB를 연결하면 전 세계 영화에서 찾아 드려요.'}</p>
         </>

@@ -1167,8 +1167,12 @@ class Comp_Main extends SC.DCLogic {
       return { ...f, open, expanded: open ? 'true' : 'false', toggle: () => this.setState({ openFaq: open ? -1 : i }), iconStyle: `flex: none; font-size: 26px; line-height: 1; color: ${T.accentText}; transform: rotate(${open ? 45 : 0}deg)` };
     });
 
+    let loggedIn = false;
+    try { const ss = JSON.parse(window.localStorage.getItem('sc.session') || 'null'); loggedIn = !!(ss && ss.refresh_token); } catch (e) { loggedIn = false; }
     return {
       accent, T, first: movies[0],
+      loginLabel: loggedIn ? '내 티켓북' : '로그인',
+      heroCta: loggedIn ? '내 티켓북 열기' : '월 10,000원으로 시작하기',
       modeName: mode,
       kicker: dark ? 'NOW SHOWING · 상영 모드' : 'LIGHTS ON · 라이트 모드',
       toggleMenu: () => this.setState({ menu: !this.state.menu }),
@@ -1245,8 +1249,8 @@ Comp_Main.prototype.__tpl = function (v) {
               "링 & 태그"),
             h("a", {"href": "#pricing", "style": "color: "+(v.T?.muted ?? "")+"; text-decoration: none"},
               "멤버십"),
-            h("a", {"href": "/app/", "style": "color: "+(v.T?.accentText ?? "")+"; text-decoration: none; font-weight: 600"},
-              "로그인"),
+            h("a", {"href": "/app/", "data-sc-login": "1", "style": "color: "+(v.T?.accentText ?? "")+"; text-decoration: none; font-weight: 600"},
+              (v.loginLabel ?? "")),
             h("div", {"role": "group", "aria-label": "화면 모드", "style": "display: flex; gap: 4px; padding: 4px; border-radius: 999px; background: "+(v.T?.soft ?? "")},
               h("button", {"onClick": v.setDark, "aria-pressed": v.darkPressed, "style": v.darkBtn},
                 "상영 모드"),
@@ -1269,8 +1273,8 @@ Comp_Main.prototype.__tpl = function (v) {
             h("p", {"style": "margin: 30px 0 0; max-width: 520px; font-size: 19px; line-height: 1.8; color: "+(v.T?.muted ?? "")},
               "막 내려간 스크린의 여운과 OST를 영원히 재생하는 기록. 링을 한 번 태그하면 포스터·OST·촬영지·나의 목소리가 한 장의 크레딧으로 남고, 그 여운을 닮은 다음 영화까지 찾아 드려요."),
             h("div", {"style": "margin-top: 36px; display: flex; flex-wrap: wrap; gap: 12px; align-items: center"},
-              h("a", {"href": "/app/", "style": "display: inline-flex; align-items: center; gap: 10px; min-height: 56px; padding: 0 28px; background: "+(v.accent ?? "")+"; color: #16130F; border-radius: 999px; font-weight: 700; text-decoration: none; font-size: 16px"},
-                "월 10,000원으로 시작하기"),
+              h("a", {"href": "/app/", "data-sc-login": "1", "style": "display: inline-flex; align-items: center; gap: 10px; min-height: 56px; padding: 0 28px; background: "+(v.accent ?? "")+"; color: #16130F; border-radius: 999px; font-weight: 700; text-decoration: none; font-size: 16px"},
+                (v.heroCta ?? "")),
               h("button", {"onClick": v.toggleMode, "aria-pressed": v.lightPressed, "style": v.switchStyle},
                 h("span", {"style": v.switchTrack},
                   h("span", {"style": v.switchKnob})),
