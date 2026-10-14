@@ -18,5 +18,5 @@ export const server = {
   recommend: (ids, exclude, genres) => get(`/api/recommend?ids=${ids.join(',')}&exclude=${exclude.join(',')}&genres=${encodeURIComponent(genres.join(','))}`),
   discover: (genres, boost, exclude, page = 1) => get(`/api/discover?genres=${encodeURIComponent(genres.join(','))}&boost=${encodeURIComponent(boost.join(','))}&exclude=${exclude.join(',')}&page=${page}`),
   locations: (id) => get(`/api/locations?id=${id}`),
-  ost: (title, year) => get(`/api/ost?title=${encodeURIComponent(title)}${year ? `&year=${year}` : ''}`),
+  ost: (title, ko, year, skip = []) => get(`/api/ost?title=${encodeURIComponent(title)}&ko=${encodeURIComponent(ko || '')}${year ? `&year=${year}` : ''}${skip.length ? `&skip=${skip.join(',')}` : ''}`),
 };

@@ -191,27 +191,43 @@ function Mood({ ticket, onChange }) {
 }
 
 // ── OST ────────────────────────────────
+const OST_V = 2; // OST 찾는 방식이 바뀌면 숫자를 올려서, 예전에 잘못 저장된 OST를 다시 찾게 합니다
 function Ost({ ticket, onChange }) {
-  const [data, setData] = useState(ticket.ost || null);
-  const [state, setState] = useState(ticket.ost ? 'ok' : 'loading');
+  const valid = ticket.ost && ticket.ost.v === OST_V;
+  const [data, setData] = useState(valid && ticket.ost.album ? ticket.ost : null);
+  const [state, setState] = useState(valid ? (ticket.ost.album ? 'ok' : 'none') : 'loading');
   const [playing, setPlaying] = useState(null);
+  const [skip, setSkip] = useState((ticket.ost && ticket.ost.skip) || []);
   const audio = useRef(null);
   const q = `${ticket.original_title || ticket.title} soundtrack`;
   const known = byId(ticket.movie_id);
 
-  useEffect(() => {
-    if (ticket.ost) return;
-    let alive = true;
-    server.ost(ticket.original_title || ticket.title, ticket.release_year).then((r) => {
-      if (!alive) return;
+  const find = (skipIds) => {
+    setState('loading');
+    if (audio.current) { audio.current.pause(); setPlaying(null); }
+    return server.ost(ticket.original_title || ticket.title, ticket.title, ticket.release_year, skipIds).then((r) => {
       if (r && r.album) {
-        const ost = { album: r.album, tracks: r.tracks.slice(0, 12) };
+        const ost = { v: OST_V, album: r.album, tracks: r.tracks.slice(0, 12), more: !!r.more, skip: skipIds };
         setData(ost); setState('ok');
         onChange({ ost }, true).catch(() => {});
-      } else setState(r ? 'none' : 'offline');
+      } else {
+        setData(null); setState(r ? 'none' : 'offline');
+        if (r) onChange({ ost: { v: OST_V, album: null, tracks: [], skip: skipIds } }, true).catch(() => {});
+      }
     });
-    return () => { alive = false; };
+  };
+
+  useEffect(() => {
+    if (valid) return;
+    find(skip);
   }, [ticket.id]);
+
+  // "이 OST가 아니에요": 지금 앨범을 빼고 다음 후보를 찾습니다
+  const wrong = () => {
+    const next = [...skip, data.album.id];
+    setSkip(next);
+    find(next);
+  };
   useEffect(() => () => audio.current && audio.current.pause(), []);
 
   const play = (t, i) => {
@@ -224,7 +240,7 @@ function Ost({ ticket, onChange }) {
     <section className="card" aria-labelledby="o-h">
       <div className="card-title"><h2 id="o-h"><I.music />OST</h2></div>
       {state === 'loading' && <div className="skeleton" style={{ height: 84 }} />}
-      {state === 'ok' && data && (
+      {state === 'ok' && data && data.album && (
         <>
           <div className="album">
             {data.album.artwork && <img src={data.album.artwork} alt={`${data.album.name} 앨범 커버`} />}
@@ -238,11 +254,17 @@ function Ost({ ticket, onChange }) {
               </li>
             ))}
           </ul>
-          <p className="faint tiny" style={{ marginTop: 8 }}>미리듣기 제공: Apple Music</p>
+          <div className="row" style={{ justifyContent: 'space-between', marginTop: 8 }}>
+            <span className="faint tiny">미리듣기 제공: Apple Music</span>
+            <button className="linkbtn small" onClick={wrong}>이 영화 OST가 아니에요</button>
+          </div>
         </>
       )}
       {(state === 'none' || state === 'offline') && (
-        <p className="muted small" style={{ marginTop: 0 }}>{known ? <>대표곡 <b>{known.ost}</b></> : '아래 음악 앱에서 이 영화의 OST를 바로 찾아 들을 수 있어요.'}</p>
+        <>
+          <p className="muted small" style={{ marginTop: 0 }}>{known ? <>대표곡 <b>{known.ost}</b> · </> : null}{state === 'none' ? '맞는 OST 앨범을 찾지 못했어요. 아래 음악 앱에서 바로 찾아 들을 수 있어요.' : '아래 음악 앱에서 이 영화의 OST를 바로 찾아 들을 수 있어요.'}</p>
+          {skip.length > 0 && <button className="linkbtn small" onClick={() => { setSkip([]); find([]); }}>처음부터 다시 찾기</button>}
+        </>
       )}
       <div className="linkrow">
         <a className="btn sm" href={links.spotify(q)} target="_blank" rel="noopener">Spotify</a>
