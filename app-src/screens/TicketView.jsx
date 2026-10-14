@@ -254,24 +254,83 @@ function Ost({ ticket, onChange }) {
 }
 
 // ── 촬영지·기억할 장소 ─────────────────────
+const SRC = { curated: 'Soundtrack Credit 추천', member: '회원 제보', wikidata: '위키데이터' };
+const gmapAt = (l) => (l.lat != null ? `https://www.google.com/maps/search/?api=1&query=${l.lat},${l.lon}` : links.gmap(l.name));
+const kmapAt = (l) => (l.lat != null ? `https://map.kakao.com/link/map/${encodeURIComponent(l.name)},${l.lat},${l.lon}` : links.kmap(l.name));
+
 function Place({ ticket, onChange }) {
-  const { toast } = useApp();
+  const { backend, toast } = useApp();
+  const [list, setList] = useState(null);
   const [name, setName] = useState(ticket.location_name || '');
+  const [share, setShare] = useState(false);
+  const [busy, setBusy] = useState(false);
   const q = name.trim();
+
+  useEffect(() => {
+    let alive = true;
+    const fallback = () => {
+      const c = byId(ticket.movie_id);
+      return c && c.place ? [{ name: c.place, note: null, lat: null, lon: null, source: 'curated' }] : [];
+    };
+    if (!ticket.movie_id) { setList([]); return; }
+    server.locations(ticket.movie_id).then((r) => { if (alive) setList(r && r.locations && r.locations.length ? r.locations : fallback()); });
+    return () => { alive = false; };
+  }, [ticket.movie_id]);
+
+  const save = async (e) => {
+    e.preventDefault();
+    setBusy(true);
+    try {
+      await onChange({ location_name: q || null });
+      if (share && q && ticket.movie_id) {
+        await backend.suggestLocation({ movie_id: ticket.movie_id, name: q.slice(0, 80) });
+        toast('저장했어요. 운영자가 확인한 뒤 다른 회원에게도 보여 드릴게요');
+        setShare(false);
+      } else toast('저장했어요');
+    } catch (e2) { toast(e2.message, true); }
+    setBusy(false);
+  };
+
   return (
     <section className="card" aria-labelledby="p-h">
       <div className="card-title"><h2 id="p-h"><I.map />촬영지 · 성지순례</h2></div>
-      <form className="row" onSubmit={async (e) => { e.preventDefault(); await onChange({ location_name: q || null }); toast('저장했어요'); }}>
-        <label className="sr" htmlFor="loc">촬영지 또는 기억하고 싶은 장소</label>
-        <input id="loc" className="input" style={{ flex: '1 1 200px', width: 'auto' }} value={name} maxLength={80} onChange={(e) => setName(e.target.value)} placeholder="예: LA 그리피스 천문대" />
-        <button className="btn sm" disabled={q === (ticket.location_name || '')}>저장</button>
-      </form>
-      {q ? (
-        <div className="linkrow">
-          <a className="btn sm" href={links.gmap(q)} target="_blank" rel="noopener"><I.map />구글 지도</a>
-          <a className="btn sm" href={links.kmap(q)} target="_blank" rel="noopener"><I.map />카카오맵</a>
+      {list === null ? <div className="skeleton" style={{ height: 72 }} /> : list.length === 0 ? (
+        <p className="faint small" style={{ marginTop: 0 }}>아직 알려진 촬영지가 없어요. 아는 장소가 있다면 아래에서 알려 주세요.</p>
+      ) : (
+        <ul className="taglist" style={{ marginBottom: 6 }}>
+          {list.map((l, i) => (
+            <li key={i} style={{ alignItems: 'flex-start', flexWrap: 'wrap' }}>
+              <div style={{ flex: '1 1 180px', minWidth: 0 }}>
+                <b style={{ fontWeight: 600 }}>{l.name}</b>
+                {l.note && <div className="muted small">{l.note}</div>}
+                <div className="faint tiny">{SRC[l.source] || ''}</div>
+              </div>
+              <div className="row" style={{ gap: 6 }}>
+                <a className="btn sm" href={gmapAt(l)} target="_blank" rel="noopener" aria-label={`${l.name} 구글 지도`}>구글 지도</a>
+                <a className="btn sm" href={kmapAt(l)} target="_blank" rel="noopener" aria-label={`${l.name} 카카오맵`}>카카오맵</a>
+              </div>
+            </li>
+          ))}
+        </ul>
+      )}
+      <hr className="sep" style={{ margin: '12px 0 14px' }} />
+      <form onSubmit={save}>
+        <label className="field" style={{ marginBottom: 8 }}><span>내가 다녀온 곳 · 기억하고 싶은 장소</span>
+          <input className="input" value={name} maxLength={80} onChange={(e) => setName(e.target.value)} placeholder="예: 그리피스 천문대 전망대" />
+        </label>
+        {ticket.movie_id ? (
+          <label className="small muted" style={{ display: 'flex', alignItems: 'flex-start', gap: 10, margin: '0 0 12px', cursor: 'pointer', lineHeight: 1.5 }}>
+            <input type="checkbox" checked={share} onChange={(e) => setShare(e.target.checked)} style={{ width: 20, height: 20, margin: 0, flex: 'none', accentColor: '#E9B04A' }} />
+            <span>
+            이 영화의 촬영지로 다른 회원에게도 알려 주기 (운영자 확인 후 공개)</span>
+          </label>
+        ) : null}
+        <div className="row">
+          <button className="btn sm primary" disabled={busy || (q === (ticket.location_name || '') && !share)}>저장</button>
+          {q && <a className="btn sm ghost" href={links.gmap(q)} target="_blank" rel="noopener">지도에서 보기</a>}
         </div>
-      ) : <p className="faint small">영화 속 장소를 적으면 지도로 바로 이어져요.</p>}
+      </form>
+      {list && list.some((l) => l.source === 'wikidata') && <p className="faint tiny" style={{ marginTop: 12 }}>촬영지 정보 일부 출처: Wikidata (CC0)</p>}
     </section>
   );
 }

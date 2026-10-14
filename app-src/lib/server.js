@@ -17,5 +17,6 @@ export const server = {
   movie: (id) => get(`/api/movies?id=${id}`),
   recommend: (ids, exclude, genres) => get(`/api/recommend?ids=${ids.join(',')}&exclude=${exclude.join(',')}&genres=${encodeURIComponent(genres.join(','))}`),
   discover: (genres, boost, exclude, page = 1) => get(`/api/discover?genres=${encodeURIComponent(genres.join(','))}&boost=${encodeURIComponent(boost.join(','))}&exclude=${exclude.join(',')}&page=${page}`),
+  locations: (id) => get(`/api/locations?id=${id}`),
   ost: (title, year) => get(`/api/ost?title=${encodeURIComponent(title)}${year ? `&year=${year}` : ''}`),
 };

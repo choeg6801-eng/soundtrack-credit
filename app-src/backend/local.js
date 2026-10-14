@@ -21,7 +21,7 @@ function seed() {
       id: uuid(), user_id: 'demo', barcode: null, movie_id: m.id, title: m.title, original_title: m.originalTitle,
       poster_url: m.poster, release_year: m.year, genres: m.genres, watched_at: d.toISOString(), theater, seat,
       city: '서울', lat: 37.5665, lon: 126.978, weather_code: weather[0], weather_text: weather[1], temp_c: weather[2],
-      moods, review, location_name: m.place, ost: null, voice_path: null, voice_seconds: null, transcript,
+      moods, review, location_name: null, ost: null, voice_path: null, voice_seconds: null, transcript,
       created_at: d.toISOString(), updated_at: d.toISOString(), sample: true,
     };
   };
@@ -108,6 +108,7 @@ export function createLocalBackend() {
     async listTags() { return delay(load().tags.map((t) => ({ ...t }))); },
     async addTag(tag) { if (load().tags.some((t) => t.id === tag.id)) throw new AppError('이미 연결된 링이에요.', 'duplicate'); const row = { created_at: new Date().toISOString(), last_tap_at: null, ...tag }; load().tags.push(row); save(); return { ...row }; },
     async updateTag(id, patch) { const t = load().tags.find((x) => x.id === id); if (!t) return null; Object.assign(t, patch); save(); return { ...t }; },
+    async suggestLocation() { return delay(true); },
     async claimRing(id, code) {
       // 체험 모드: 연결 코드 8자리면 무엇이든 통과
       if (load().tags.some((t) => t.id === id)) return 'ok';

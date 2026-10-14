@@ -257,6 +257,11 @@ export function createSupabaseBackend({ url, anonKey }) {
       await authed('/storage/v1/object/voice', { method: 'DELETE', body: { prefixes: [path] } });
     },
 
+    // ── 촬영지 제안 (운영자 확인 후 공개) ──
+    async suggestLocation(loc) {
+      await rest('/filming_locations', { method: 'POST', body: { movie_id: loc.movie_id, name: loc.name, note: loc.note || null }, headers: { Prefer: 'return=minimal' } }, '촬영지를 제안하지 못했어요.');
+    },
+
     // ── NFC 링·태그 ─────────────────────────
     listTags: () => rest('/nfc_tags?select=*&order=created_at.asc', {}, '링 목록을 불러오지 못했어요.'),
     async addTag(tag) {

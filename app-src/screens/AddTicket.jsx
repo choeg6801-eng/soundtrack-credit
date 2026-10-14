@@ -195,7 +195,6 @@ function Details({ movie, barcode, onSaved, onBack }) {
         weather_text: weather ? weather.text : null,
         temp_c: weather ? weather.temp : null,
         moods,
-        location_name: c && c.place ? c.place : null,
       });
       onSaved(row);
     } catch (e2) {

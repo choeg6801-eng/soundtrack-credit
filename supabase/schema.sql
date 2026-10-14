@@ -288,3 +288,35 @@ create policy "voice: update own" on storage.objects for update to authenticated
   using (bucket_id = 'voice' and (storage.foldername(name))[1] = auth.uid()::text);
 create policy "voice: delete own" on storage.objects for delete to authenticated
   using (bucket_id = 'voice' and (storage.foldername(name))[1] = auth.uid()::text);
+
+-- ─────────────────────────────────────────────
+-- 7) 촬영지 (운영자 추천 + 회원 제안)
+--    운영자: Table Editor 에서 직접 추가(source='curated', status='approved')
+--    회원 제안: 앱에서 status='pending' 으로 들어옴 → 확인 후 status 를 'approved' 로 바꾸면 모두에게 표시
+-- ─────────────────────────────────────────────
+create table if not exists public.filming_locations (
+  id           bigint generated always as identity primary key,
+  movie_id     integer not null,
+  name         text not null check (char_length(name) between 1 and 80),
+  note         text check (char_length(note) <= 200),
+  lat          double precision check (lat between -90 and 90),
+  lon          double precision check (lon between -180 and 180),
+  source       text not null default 'user' check (source in ('curated', 'user')),
+  status       text not null default 'pending' check (status in ('approved', 'pending', 'rejected')),
+  submitted_by uuid default auth.uid() references auth.users (id) on delete set null,
+  created_at   timestamptz not null default now()
+);
+create index if not exists filming_locations_movie_idx on public.filming_locations (movie_id, status);
+alter table public.filming_locations enable row level security;
+
+drop policy if exists "locations: read approved" on public.filming_locations;
+drop policy if exists "locations: read own suggestions" on public.filming_locations;
+drop policy if exists "locations: suggest" on public.filming_locations;
+create policy "locations: read approved" on public.filming_locations for select to anon, authenticated
+  using (status = 'approved');
+create policy "locations: read own suggestions" on public.filming_locations for select to authenticated
+  using (submitted_by = (select auth.uid()));
+create policy "locations: suggest" on public.filming_locations for insert to authenticated
+  with check (submitted_by = (select auth.uid()) and source = 'user' and status = 'pending');
+revoke update, delete on public.filming_locations from anon, authenticated;
+revoke insert on public.filming_locations from anon;
