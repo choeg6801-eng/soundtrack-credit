@@ -64,6 +64,11 @@ TMDB 무료 키는 **비상업용**입니다. 유료 판매를 시작하기 전�
 - **사전 알림 신청자 보기:** Supabase → **Table Editor → waitlist** → 오른쪽 위 **Export → CSV**
 - **회원·티켓 보기:** Table Editor → `profiles`, `tickets`
 - **녹음 파일:** Storage → `voice` (회원별 폴더, 비공개)
+- **촬영지 관리:** Table Editor → `filming_locations`
+  - 회원 제보는 `status = pending` 으로 들어와요. 확인 후 `approved` 로 바꾸면 모든 회원에게 보여요 (틀리면 `rejected`).
+  - 직접 추가: Insert row → `movie_id`(TMDB 영화 번호), `name`, `note`, `lat`·`lon`(구글 지도에서 장소 우클릭 → 좌표 복사), `source = curated`, `status = approved`
+  - 영화 번호는 themoviedb.org 영화 주소 끝의 숫자예요 (예: 라라랜드 313369)
+  - 운영자 목록이 없거나 부족하면 위키데이터의 촬영지가 자동으로 함께 표시돼요
 - **정식 멤버로 바꾸기(수동):** `profiles` 표에서 해당 회원의 `plan` 을 `member` 로 수정
 
 ---
