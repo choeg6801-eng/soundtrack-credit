@@ -4,12 +4,13 @@ import { I } from '../ui/icons.jsx';
 import { searchCatalog, byId, MOODS } from '../lib/catalog.js';
 import { server } from '../lib/server.js';
 import { CITIES, fetchWeather, nearestCity } from '../lib/weather.js';
-import { toLocalInput, fromLocalInput } from '../lib/util.js';
+import { initialWhen, buildWhen, hasWeatherDate } from '../lib/when.js';
+import { WhenWhere } from '../ui/WhenWhere.jsx';
 
 const FORMATS = ['qr_code', 'code_128', 'code_39', 'code_93', 'codabar', 'ean_13', 'ean_8', 'itf', 'upc_a', 'pdf417', 'data_matrix', 'aztec'];
 
 // ── 1단계: 바코드 ───────────────────────────
-function Scan({ onDone }) {
+function Scan({ onDone, onNoTicket }) {
   const [code, setCode] = useState('');
   const [cam, setCam] = useState(false);
   const [msg, setMsg] = useState('');
@@ -50,6 +51,13 @@ function Scan({ onDone }) {
 
   return (
     <>
+      <div className="noticket">
+        <p><b>티켓이 없어도 괜찮아요.</b> 예전에 본 영화나 집에서 본 영화도 기록할 수 있어요.</p>
+        <div className="row">
+          <button type="button" className="btn sm" onClick={() => onNoTicket('past')}><I.ticket />예전에 극장에서 봤어요</button>
+          <button type="button" className="btn sm" onClick={() => onNoTicket('ott')}><I.play />OTT·집에서 봤어요</button>
+        </div>
+      </div>
       <h1>티켓 바코드</h1>
       <p className="muted" style={{ margin: '8px 0 20px' }}>종이·키오스크·모바일 티켓의 바코드(또는 QR)를 비추면 예매번호가 저장돼요. 같은 티켓이 두 번 등록되는 것도 막아 줘요.</p>
       {cam ? (
@@ -132,12 +140,12 @@ function Pick({ onDone }) {
 }
 
 // ── 3단계: 관람 정보 ────────────────────────
-function Details({ movie, barcode, onSaved, onBack }) {
+function Details({ movie, barcode, mode, onSaved, onBack }) {
   const { backend, tickets, toast } = useApp();
-  const last = (tickets || [])[0];
-  const [when, setWhen] = useState(() => { const d = new Date(); d.setSeconds(0, 0); return toLocalInput(d); });
-  const [theater, setTheater] = useState(last ? last.theater || '' : '');
-  const [seat, setSeat] = useState('');
+  const last = (tickets || []).find((t) => (t.watch_type || 'cinema') === 'cinema' && t.theater);
+  const [ww, setWw] = useState(() => initialWhen(null, mode === 'ott' ? { type: 'ott', prec: 'day' } : mode === 'past' ? { prec: 'year', y: movie.year && movie.year < new Date().getFullYear() ? String(movie.year) : undefined } : { theater: last ? last.theater : '' }));
+  const weatherOn = hasWeatherDate(ww.prec);
+  const weatherAt = ww.prec === 'exact' ? ww.dt : (() => { const d = new Date(`${ww.day}T20:00`); return d > new Date() ? ww.day + 'T' + new Date().toTimeString().slice(0, 5) : `${ww.day}T20:00`; })();
   const [city, setCity] = useState(last && last.city ? last.city : '서울');
   const [geo, setGeo] = useState(null);
   const [weather, setWeather] = useState(null);
@@ -154,15 +162,17 @@ function Details({ movie, barcode, onSaved, onBack }) {
 
   useEffect(() => {
     let alive = true;
+    if (!weatherOn) { setWeather(null); setWState('off'); return undefined; }
     const [lat, lon] = coords();
     setWState('loading');
     const t = setTimeout(async () => {
-      const w = await fetchWeather(lat, lon, fromLocalInput(when));
+      const d = new Date(weatherAt);
+      const w = isNaN(d) ? null : await fetchWeather(lat, lon, d);
       if (!alive) return;
       setWeather(w); setWState(w ? 'ok' : 'fail');
     }, 350);
     return () => { alive = false; clearTimeout(t); };
-  }, [when, city, geo]);
+  }, [weatherAt, weatherOn, city, geo]);
 
   const locate = () => {
     if (!navigator.geolocation) { toast('위치 기능을 쓸 수 없어요', true); return; }
@@ -187,13 +197,11 @@ function Details({ movie, barcode, onSaved, onBack }) {
         poster_url: movie.poster || null,
         release_year: movie.year || null,
         genres: movie.genres || [],
-        watched_at: fromLocalInput(when).toISOString(),
-        theater: theater.trim() || null,
-        seat: seat.trim().toUpperCase() || null,
+        ...buildWhen(ww, movie.year),
         city, lat: Number(lat.toFixed(4)), lon: Number(lon.toFixed(4)),
-        weather_code: weather ? weather.code : null,
-        weather_text: weather ? weather.text : null,
-        temp_c: weather ? weather.temp : null,
+        weather_code: weatherOn && weather ? weather.code : null,
+        weather_text: weatherOn && weather ? weather.text : null,
+        temp_c: weatherOn && weather ? weather.temp : null,
         moods,
       });
       onSaved(row);
@@ -208,15 +216,12 @@ function Details({ movie, barcode, onSaved, onBack }) {
     <form onSubmit={save}>
       <div className="chosen">
         <Poster src={movie.poster} title={movie.title} />
-        <div><p className="kicker">{barcode ? `TICKET · ${barcode}` : 'TICKET'}</p><h1 style={{ fontSize: 24 }}>{movie.title}</h1><button type="button" className="linkbtn" onClick={onBack}>영화 바꾸기</button></div>
+        <div><p className="kicker">{barcode ? `TICKET · ${barcode}` : ww.type === 'cinema' ? 'TICKET' : 'SCREENING AT HOME'}</p><h1 style={{ fontSize: 24 }}>{movie.title}</h1><button type="button" className="linkbtn" onClick={onBack}>영화 바꾸기</button></div>
       </div>
-      <label className="field"><span>관람 일시</span><input className="input" type="datetime-local" value={when} onChange={(e) => setWhen(e.target.value)} required /></label>
-      <div className="grid2">
-        <label className="field"><span>극장·상영관</span><input className="input" value={theater} maxLength={60} onChange={(e) => setTheater(e.target.value)} placeholder="예: OO시네마 3관" /></label>
-        <label className="field"><span>좌석</span><input className="input mono" value={seat} maxLength={20} onChange={(e) => setSeat(e.target.value)} placeholder="F11" /></label>
-      </div>
+      <WhenWhere s={ww} set={setWw} releaseYear={movie.year} />
+      {weatherOn && <>
       <div className="field">
-        <span id="city-l">관람 도시 (날씨 기록용)</span>
+        <span id="city-l">{ww.type === 'cinema' ? '관람 도시 (날씨 기록용)' : '본 곳 도시 (날씨 기록용)'}</span>
         <div className="row">
           <select className="select" style={{ flex: '1 1 160px', width: 'auto' }} aria-labelledby="city-l" value={city} onChange={(e) => { setGeo(null); setCity(e.target.value); }}>
             {CITIES.map((c) => <option key={c[0]} value={c[0]}>{c[0]}</option>)}
@@ -229,6 +234,7 @@ function Details({ movie, barcode, onSaved, onBack }) {
         {wState === 'ok' && <>그 시각 {city}의 날씨 <b>{weather.text || '—'}{weather.temp != null ? ` ${weather.temp}°` : ''}</b> 가 함께 저장돼요.</>}
         {wState === 'fail' && '날씨를 불러오지 못했어요. 날씨 없이 저장돼요.'}
       </div>
+      </>}
       <div className="field">
         <span>지금 남은 여운 (선택)</span>
         <div className="chips">
@@ -245,6 +251,7 @@ export function AddTicket({ query }) {
   const { go, reloadTickets, config, isWanted, unwatch } = useApp();
   const preset = query.get('movie');
   const [step, setStep] = useState(preset ? 3 : 1);
+  const [mode, setMode] = useState(query.get('mode') || '');
   const [barcode, setBarcode] = useState('');
   const [movie, setMovie] = useState(() => (preset ? byId(preset) : null));
 
@@ -258,9 +265,9 @@ export function AddTicket({ query }) {
     <div style={{ maxWidth: 640, margin: '0 auto' }}>
       <a className="back" href="#/"><I.back />티켓북</a>
       <div className="steps" aria-label={`3단계 중 ${step}단계`}>{[1, 2, 3].map((s) => <i key={s} className={s <= step ? 'on' : ''} />)}</div>
-      {step === 1 && <Scan onDone={(c) => { setBarcode(c); setStep(movie ? 3 : 2); }} />}
+      {step === 1 && <Scan onDone={(c) => { setBarcode(c); setStep(movie ? 3 : 2); }} onNoTicket={(m) => { setMode(m); setBarcode(''); setStep(movie ? 3 : 2); }} />}
       {step === 2 && <Pick onDone={(m) => { setMovie(m); setStep(3); }} />}
-      {step === 3 && movie && <Details movie={movie} barcode={barcode} onBack={() => setStep(2)} onSaved={async (row) => { if (row.movie_id && isWanted(row.movie_id)) unwatch(row.movie_id); await reloadTickets(); go(`/ticket/${row.id}?new=1`); }} />}
+      {step === 3 && movie && <Details movie={movie} barcode={barcode} mode={mode} onBack={() => setStep(2)} onSaved={async (row) => { if (row.movie_id && isWanted(row.movie_id)) unwatch(row.movie_id); await reloadTickets(); go(`/ticket/${row.id}?new=1`); }} />}
       {step === 3 && !movie && <p className="muted">영화 정보를 불러오는 중…</p>}
     </div>
   );

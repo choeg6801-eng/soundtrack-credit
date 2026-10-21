@@ -5,7 +5,9 @@ import { MOODS, byId } from '../lib/catalog.js';
 import { server } from '../lib/server.js';
 import { fetchWeather } from '../lib/weather.js';
 import { renderShareCard, FORMATS } from '../lib/sharecard.js';
-import { fmtDate, fmtSec, links, toLocalInput, fromLocalInput } from '../lib/util.js';
+import { fmtDate, fmtSec, links } from '../lib/util.js';
+import { initialWhen, buildWhen, hasWeatherDate, whenDate, whenTime, placeOf, thirdCell } from '../lib/when.js';
+import { WhenWhere } from '../ui/WhenWhere.jsx';
 
 const MAX = 30;
 // Chrome 으로 녹음한 webm 은 길이 정보가 비어 있어 재생바가 멈춰 보이는 문제를 바로잡습니다
@@ -398,25 +400,22 @@ function ShareSheet({ ticket, onClose }) {
 
 // ── 정보 수정 ─────────────────────────────
 function EditSheet({ ticket, onClose, onSave }) {
-  const [when, setWhen] = useState(toLocalInput(new Date(ticket.watched_at)));
-  const [theater, setTheater] = useState(ticket.theater || '');
-  const [seat, setSeat] = useState(ticket.seat || '');
+  const [ww, setWw] = useState(() => initialWhen(ticket));
   const [busy, setBusy] = useState(false);
   return (
     <Sheet title="관람 정보 수정" onClose={onClose}>
       <form onSubmit={async (e) => {
         e.preventDefault(); setBusy(true);
-        const d = fromLocalInput(when);
-        const patch = { watched_at: d.toISOString(), theater: theater.trim() || null, seat: seat.trim().toUpperCase() || null };
-        if (d.getTime() !== new Date(ticket.watched_at).getTime() && ticket.lat != null) {
+        const patch = buildWhen(ww, ticket.release_year);
+        const d = new Date(patch.watched_at);
+        if (!hasWeatherDate(ww.prec)) Object.assign(patch, { weather_code: null, weather_text: null, temp_c: null });
+        else if ((d.getTime() !== new Date(ticket.watched_at).getTime() || !ticket.weather_text) && ticket.lat != null) {
           const w = await fetchWeather(ticket.lat, ticket.lon, d);
           if (w) Object.assign(patch, { weather_code: w.code, weather_text: w.text, temp_c: w.temp });
         }
         await onSave(patch); setBusy(false); onClose();
       }}>
-        <label className="field"><span>관람 일시</span><input className="input" type="datetime-local" value={when} onChange={(e) => setWhen(e.target.value)} /></label>
-        <label className="field"><span>극장·상영관</span><input className="input" value={theater} maxLength={60} onChange={(e) => setTheater(e.target.value)} /></label>
-        <label className="field"><span>좌석</span><input className="input mono" value={seat} maxLength={20} onChange={(e) => setSeat(e.target.value)} /></label>
+        <WhenWhere s={ww} set={setWw} releaseYear={ticket.release_year} />
         <div className="actions"><button type="button" className="btn ghost" onClick={onClose}>취소</button><button className="btn primary" disabled={busy}>저장</button></div>
       </form>
     </Sheet>
@@ -465,11 +464,11 @@ export function TicketView({ id, query }) {
           {t.sample && <span className="pill" style={{ marginTop: 8 }}>예시 데이터</span>}
         </div>
         <div className="stub">
-          <div><small>Date</small><b>{fmtDate(t.watched_at, false)}</b></div>
-          <div><small>Time</small><b>{fmtDate(t.watched_at).split(' · ')[1]}</b></div>
-          <div><small>Seat</small><b>{t.seat || '—'}</b></div>
+          <div><small>Date</small><b>{whenDate(t)}</b></div>
+          <div><small>Time</small><b>{whenTime(t)}</b></div>
+          <div><small>{thirdCell(t)[0]}</small><b>{thirdCell(t)[1]}</b></div>
           <div><small>Weather</small><b>{t.weather_text ? `${t.weather_text}${t.temp_c != null ? ` ${Math.round(t.temp_c)}°` : ''}` : '—'}</b></div>
-          <div className="code"><span className="mono tiny" style={{ color: 'var(--ticket-muted)' }}>{t.theater || '극장 미입력'}{t.city ? ` · ${t.city}` : ''}</span>{t.barcode ? <span className="bars" role="img" title={t.barcode} aria-label={`바코드 ${t.barcode}`} /> : null}</div>
+          <div className="code"><span className="mono tiny" style={{ color: 'var(--ticket-muted)' }}>{placeOf(t)}{t.city && (t.weather_text || (t.watch_type || 'cinema') === 'cinema') ? ` · ${t.city}` : ''}</span>{t.barcode ? <span className="bars" role="img" title={t.barcode} aria-label={`바코드 ${t.barcode}`} /> : null}</div>
         </div>
       </div>
       <div className="cols">

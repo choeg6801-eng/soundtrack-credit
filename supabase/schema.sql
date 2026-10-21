@@ -343,3 +343,16 @@ create policy "watchlist: own rows" on public.watchlist
   for all to authenticated
   using (user_id = (select auth.uid())) with check (user_id = (select auth.uid()));
 revoke all on public.watchlist from anon;
+
+-- ─────────────────────────────────────────────
+-- 9) 영화관이 아닌 곳(OTT·TV 등)에서 본 영화, 날짜를 정확히 기억 못 하는 기록
+-- ─────────────────────────────────────────────
+alter table public.tickets add column if not exists watch_type text not null default 'cinema';
+alter table public.tickets add column if not exists platform text;
+alter table public.tickets add column if not exists date_precision text not null default 'exact';
+alter table public.tickets drop constraint if exists tickets_watch_type_check;
+alter table public.tickets add constraint tickets_watch_type_check check (watch_type in ('cinema', 'ott', 'other'));
+alter table public.tickets drop constraint if exists tickets_platform_check;
+alter table public.tickets add constraint tickets_platform_check check (char_length(platform) <= 30);
+alter table public.tickets drop constraint if exists tickets_date_precision_check;
+alter table public.tickets add constraint tickets_date_precision_check check (date_precision in ('exact', 'day', 'month', 'year', 'unknown'));

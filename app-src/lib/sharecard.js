@@ -1,5 +1,5 @@
 // 공유 카드: 티켓 한 장을 인스타그램 스토리(9:16)·피드(4:5) 이미지로 그립니다.
-import { fmtDate } from './util.js';
+import { whenDate, whenTime, placeOf, thirdCell } from './when.js';
 
 const C = { bg: '#0A0907', amber: '#E9B04A', amberSoft: '#F6CF84', cream: '#F4ECDD', ink: '#1D1913', inkMuted: '#6B6151', fg: '#F3EBDD', muted: '#CFC5B3', faint: '#968C7A' };
 const SERIF = '"Nanum Myeongjo", "Noto Serif KR", serif';
@@ -86,9 +86,9 @@ function stub(ctx, x, y, w, h, t) {
   ctx.fillStyle = '#0D0B08';
   [[x, y + h / 2], [x + w, y + h / 2]].forEach(([cx, cy]) => { ctx.beginPath(); ctx.arc(cx, cy, 18, 0, Math.PI * 2); ctx.fill(); });
   const cells = [
-    ['DATE', fmtDate(t.watched_at, false)],
-    ['TIME', (fmtDate(t.watched_at).split(' · ')[1]) || '—'],
-    ['SEAT', t.seat || '—'],
+    ['DATE', whenDate(t)],
+    ['TIME', whenTime(t)],
+    [thirdCell(t)[0].toUpperCase(), thirdCell(t)[1]],
     ['WEATHER', t.weather_text ? `${t.weather_text}${t.temp_c != null ? ` ${Math.round(t.temp_c)}°` : ''}` : '—'],
   ];
   const cw = (w - 80) / 4;
@@ -103,7 +103,7 @@ function stub(ctx, x, y, w, h, t) {
     ctx.strokeStyle = '#BFB29A'; ctx.setLineDash([8, 8]); ctx.lineWidth = 2;
     ctx.beginPath(); ctx.moveTo(x + 40, y + 128); ctx.lineTo(x + w - 40, y + 128); ctx.stroke(); ctx.setLineDash([]);
     ctx.fillStyle = C.inkMuted; ctx.font = `400 22px ${MONO}`;
-    ctx.fillText(`${t.theater || 'ADMIT ONE'}${t.city ? ` · ${t.city}` : ''}`.slice(0, 34), x + 40, y + 170);
+    ctx.fillText(`${placeOf(t, 'ADMIT ONE')}${t.city && t.weather_text ? ` · ${t.city}` : ''}`.slice(0, 34), x + 40, y + 170);
     // 바코드
     let bx = x + w - 300;
     const seed = String(t.barcode || t.id || 'x');

@@ -276,3 +276,10 @@ hr.sep { border: none; border-top: 1px solid var(--line); margin: 18px 0; }
 .watch-strip-row .poster { width: 64px; flex: none; border-radius: 8px; }
 .watch-strip-row .poster .ph { font-size: 10px; padding: 6px; }
 .rec-actions .btn.sm { padding: 0 12px; min-height: 38px; font-size: 13.5px; gap: 6px; }
+
+/* 티켓 없이 기록 (예전에 본 영화 · OTT) */
+.noticket { margin: 0 0 24px; padding: 16px; border-radius: var(--radius); border: 1px dashed var(--line-strong); background: var(--surface); }
+.noticket p { margin: 0 0 12px; color: var(--muted); font-size: 14px; }
+.noticket p b { color: var(--fg); }
+.noticket .btn svg { width: 16px; height: 16px; }
+.field small.faint { font-weight: 400; margin-left: 4px; }
