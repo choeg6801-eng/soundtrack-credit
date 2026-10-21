@@ -4,7 +4,8 @@ import { I } from '../ui/icons.jsx';
 import { count, fmtDate } from '../lib/util.js';
 
 export function Book() {
-  const { tickets, profile } = useApp();
+  const { tickets, profile, watch } = useApp();
+  const wl = watch || [];
   const [q, setQ] = useState('');
   const [year, setYear] = useState('전체');
   const list = tickets || [];
@@ -39,6 +40,13 @@ export function Book() {
           <div className="stat"><b>{topGenre ? topGenre[0] : '—'}</b><span>가장 많이 본 장르</span></div>
           <div className="stat"><b>{topMood ? topMood[0] : '—'}</b><span>가장 자주 남은 여운</span></div>
         </div>
+      )}
+
+      {wl.length > 0 && (
+        <a className="watch-strip" href="#/recommend?tab=watch" aria-label={`보고 싶은 영화 ${wl.length}편 전체 보기`}>
+          <div className="watch-strip-head"><span><I.bookmarked />보고 싶은 영화 <b>{wl.length}편</b></span><span className="faint small">전체 보기 →</span></div>
+          <div className="watch-strip-row">{wl.slice(0, 8).map((w) => <Poster key={w.movie_id} src={w.poster_url} title={w.title} />)}</div>
+        </a>
       )}
 
       {list.length === 0 ? (

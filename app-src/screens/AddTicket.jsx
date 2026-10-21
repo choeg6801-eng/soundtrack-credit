@@ -242,7 +242,7 @@ function Details({ movie, barcode, onSaved, onBack }) {
 }
 
 export function AddTicket({ query }) {
-  const { go, reloadTickets, config } = useApp();
+  const { go, reloadTickets, config, isWanted, unwatch } = useApp();
   const preset = query.get('movie');
   const [step, setStep] = useState(preset ? 3 : 1);
   const [barcode, setBarcode] = useState('');
@@ -260,7 +260,7 @@ export function AddTicket({ query }) {
       <div className="steps" aria-label={`3단계 중 ${step}단계`}>{[1, 2, 3].map((s) => <i key={s} className={s <= step ? 'on' : ''} />)}</div>
       {step === 1 && <Scan onDone={(c) => { setBarcode(c); setStep(movie ? 3 : 2); }} />}
       {step === 2 && <Pick onDone={(m) => { setMovie(m); setStep(3); }} />}
-      {step === 3 && movie && <Details movie={movie} barcode={barcode} onBack={() => setStep(2)} onSaved={async (row) => { await reloadTickets(); go(`/ticket/${row.id}?new=1`); }} />}
+      {step === 3 && movie && <Details movie={movie} barcode={barcode} onBack={() => setStep(2)} onSaved={async (row) => { if (row.movie_id && isWanted(row.movie_id)) unwatch(row.movie_id); await reloadTickets(); go(`/ticket/${row.id}?new=1`); }} />}
       {step === 3 && !movie && <p className="muted">영화 정보를 불러오는 중…</p>}
     </div>
   );

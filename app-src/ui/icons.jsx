@@ -17,5 +17,8 @@ export const I = {
   sun: () => <S><circle cx="12" cy="12" r="4" /><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4" /></S>,
   heart: () => <S><path d="M12 20s-7-4.4-7-10a4 4 0 0 1 7-2.6A4 4 0 0 1 19 10c0 5.6-7 10-7 10z" /></S>,
   search: () => <S><circle cx="11" cy="11" r="7" /><path d="M20 20l-3.5-3.5" /></S>,
+  bookmark: () => <S><path d="M6 3h12v18l-6-4.5L6 21z" /></S>,
+  bookmarked: () => <S fill="currentColor"><path d="M6 3h12v18l-6-4.5L6 21z" /></S>,
+  share: () => <S><path d="M12 3v12M7 8l5-5 5 5" /><path d="M5 13v6h14v-6" /></S>,
   link: () => <S><path d="M10 14a5 5 0 0 0 7 0l3-3a5 5 0 0 0-7-7l-1 1M14 10a5 5 0 0 0-7 0l-3 3a5 5 0 0 0 7 7l1-1" /></S>,
 };

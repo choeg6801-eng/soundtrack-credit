@@ -3,7 +3,17 @@ import { useApp, Poster } from '../ui/kit.jsx';
 import { I } from '../ui/icons.jsx';
 import { recommendFromCatalog, discoverFromCatalog, tasteGenres, moodGenres, GENRE_CHOICES, MOODS } from '../lib/catalog.js';
 import { server } from '../lib/server.js';
-import { count, links } from '../lib/util.js';
+import { count, links, fmtDate } from '../lib/util.js';
+
+export function WantButton({ m }) {
+  const { isWanted, toggleWatch } = useApp();
+  const on = isWanted(m.id || m.movie_id);
+  return (
+    <button type="button" className={`btn sm want${on ? ' on' : ''}`} aria-pressed={on} onClick={() => toggleWatch(m)} aria-label={on ? `${m.title} 보고 싶은 영화에서 빼기` : `${m.title} 보고 싶은 영화에 담기`}>
+      {on ? <I.bookmarked /> : <I.bookmark />}{on ? '담았어요' : '보고 싶어요'}
+    </button>
+  );
+}
 
 function RecCard({ m, reason, rank }) {
   return (
@@ -15,7 +25,8 @@ function RecCard({ m, reason, rank }) {
         <div className="meter" aria-hidden="true"><i style={{ width: `${m.match}%` }} /></div>
         <div className="small"><b style={{ color: 'var(--accent-text)' }}>{m.match}%</b> <span className="muted">{reason}</span></div>
         <div className="tags">{[...(m.sharedMoods || []).map((x) => `${x} 무드`), ...(m.sharedGenres || []).slice(0, 2)].slice(0, 3).map((x) => <span key={x}>{x}</span>)}</div>
-        <div className="row" style={{ marginTop: 10, gap: 6 }}>
+        <div className="row rec-actions">
+          <WantButton m={m} />
           <a className="btn sm" href={`#/add?movie=${m.id}`}>봤어요</a>
           <a className="btn sm ghost" href={links.naver(`${m.title} 영화`)} target="_blank" rel="noopener">정보 보기</a>
         </div>
@@ -153,10 +164,58 @@ export function FromTaste({ list, title = '어떤 영화가 끌리세요?' }) {
   );
 }
 
+// ── 보고 싶은 영화 ──────────────────────────
+const WSORTS = [['added', '담은 순'], ['rating', '평점 높은 순'], ['year', '최신 개봉 순']];
+export function WatchList() {
+  const { watch, toggleWatch } = useApp();
+  const [sort, setSort] = useState('added');
+  const [genre, setGenre] = useState('전체');
+  if (watch === null) return <Skeletons />;
+  if (!watch.length) return (
+    <div className="empty"><I.bookmark /><h2>아직 담은 영화가 없어요</h2><p>추천 목록에서 ‘보고 싶어요’를 누르면 여기에 모여요. 다 보고 티켓을 기록하면 목록에서 자동으로 빠져요.</p></div>
+  );
+  const genres = ['전체', ...count(watch.flatMap((w) => w.genres || [])).slice(0, 6).map((x) => x[0])];
+  const shown = watch.filter((w) => genre === '전체' || (w.genres || []).includes(genre)).slice().sort({
+    added: (a, b) => String(b.created_at).localeCompare(String(a.created_at)),
+    rating: (a, b) => (b.rating || 0) - (a.rating || 0),
+    year: (a, b) => (b.release_year || 0) - (a.release_year || 0),
+  }[sort]);
+  return (
+    <>
+      <div className="row" style={{ justifyContent: 'space-between', margin: '0 0 10px' }}>
+        <span className="faint small">{shown.length}편{genre !== '전체' ? ` · ${genre}` : ''}</span>
+        <div className="chips" role="group" aria-label="정렬">
+          {WSORTS.filter((x) => x[0] !== 'rating' || watch.some((w) => w.rating)).map(([k, label]) => <button key={k} className="chip" style={{ minHeight: 36 }} aria-pressed={sort === k} onClick={() => setSort(k)}>{label}</button>)}
+        </div>
+      </div>
+      {genres.length > 2 && <div className="chips" role="group" aria-label="장르" style={{ marginBottom: 14 }}>{genres.map((g) => <button key={g} className="chip" style={{ minHeight: 36 }} aria-pressed={genre === g} onClick={() => setGenre(g)}>{g}</button>)}</div>}
+      <div className="recs">
+        {shown.map((w) => (
+          <article className="rec-card" key={w.movie_id}>
+            <Poster src={w.poster_url} title={w.title} />
+            <div style={{ minWidth: 0 }}>
+              <h3>{w.title}</h3>
+              <div className="faint tiny">{[w.release_year, (w.genres || []).slice(0, 3).join('·'), w.rating ? `평점 ${Number(w.rating).toFixed(1)}` : null].filter(Boolean).join(' · ')}</div>
+              <div className="faint tiny" style={{ marginTop: 6 }}>{fmtDate(w.created_at, false)}에 담음</div>
+              <div className="row rec-actions">
+                <a className="btn sm primary" href={`#/add?movie=${w.movie_id}`}><I.ticket />봤어요 · 기록</a>
+                <a className="btn sm ghost" href={links.naver(`${w.title} 영화`)} target="_blank" rel="noopener">정보 보기</a>
+                <button type="button" className="btn sm ghost" onClick={() => toggleWatch(w)} aria-label={`${w.title} 목록에서 빼기`}><I.trash />빼기</button>
+              </div>
+            </div>
+          </article>
+        ))}
+      </div>
+    </>
+  );
+}
+
 export function Recommend() {
-  const { tickets, profile } = useApp();
+  const { tickets, profile, route, watch } = useApp();
   const list = tickets || [];
-  const [tab, setTab] = useState(list.length ? 'history' : 'taste');
+  const want = route.query.get('tab');
+  const [tab, setTab] = useState(want === 'watch' ? 'watch' : list.length ? 'history' : 'taste');
+  useEffect(() => { if (want === 'watch') setTab('watch'); }, [want]);
   const taste = (profile && profile.taste) || {};
   const tasteG = tasteGenres(taste.genres || [], taste.moods || []);
   const topMoods = count(list.flatMap((t) => t.moods || [])).slice(0, 3).map((x) => x[0]);
@@ -167,16 +226,17 @@ export function Recommend() {
         <div>
           <p className="kicker">NEXT FEATURE</p>
           <h1>당신의 여운과 닮은 다음 영화</h1>
-          <p className="muted">{tab === 'history'
+          <p className="muted">{tab === 'watch' ? '담아 둔 영화를 한눈에 보고, 다 보면 바로 티켓으로 기록하세요.' : tab === 'history'
             ? `기록한 ${list.length}편${topMoods.length ? ` · 자주 남은 여운 ${topMoods.join(', ')}` : ''}을 바탕으로 골랐어요.`
             : '좋아하는 장르와 남았으면 하는 여운을 고르면, 그에 맞는 영화를 찾아 드려요.'}</p>
         </div>
       </div>
-      <div className="seg" role="group" aria-label="추천 방식" style={{ maxWidth: 420, margin: '0 0 20px' }}>
+      <div className="seg seg3" role="group" aria-label="추천 방식" style={{ maxWidth: 560, margin: '0 0 20px' }}>
         <button type="button" aria-pressed={tab === 'history'} onClick={() => setTab('history')}>내 기록 기반</button>
         <button type="button" aria-pressed={tab === 'taste'} onClick={() => setTab('taste')}>취향으로 찾기</button>
+        <button type="button" aria-pressed={tab === 'watch'} onClick={() => setTab('watch')}>보고 싶어요{watch && watch.length ? ` ${watch.length}` : ''}</button>
       </div>
-      {tab === 'taste' ? <FromTaste list={list} /> : list.length ? <FromHistory list={list} tasteG={tasteG} /> : (
+      {tab === 'watch' ? <WatchList /> : tab === 'taste' ? <FromTaste list={list} /> : list.length ? <FromHistory list={list} tasteG={tasteG} /> : (
         <div className="empty"><I.spark /><h2>아직 기록한 영화가 없어요</h2><p>‘취향으로 찾기’에서 장르와 무드를 고르거나, 본 영화를 기록하면 닮은 영화를 찾아 드려요.</p>
           <div className="row" style={{ justifyContent: 'center' }}><button className="btn primary" onClick={() => setTab('taste')}><I.heart />취향으로 찾기</button><a className="btn" href="#/add"><I.plus />티켓 등록</a></div>
         </div>

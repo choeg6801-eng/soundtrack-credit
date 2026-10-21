@@ -262,6 +262,14 @@ export function createSupabaseBackend({ url, anonKey }) {
       await rest('/filming_locations', { method: 'POST', body: { movie_id: loc.movie_id, name: loc.name, note: loc.note || null }, headers: { Prefer: 'return=minimal' } }, '촬영지를 제안하지 못했어요.');
     },
 
+    // ── 보고 싶은 영화 ─────────────────────
+    listWatch: () => rest('/watchlist?select=*&order=created_at.desc', {}, '보고 싶은 영화를 불러오지 못했어요.'),
+    async addWatch(m) {
+      const rows = await rest('/watchlist', { method: 'POST', body: m, headers: { Prefer: 'return=representation,resolution=ignore-duplicates' } }, '보고 싶은 영화에 담지 못했어요.');
+      return rows[0] || { ...m, created_at: new Date().toISOString() };
+    },
+    removeWatch: (movieId) => rest(`/watchlist?movie_id=eq.${Number(movieId)}`, { method: 'DELETE' }, '목록에서 빼지 못했어요.'),
+
     // ── NFC 링·태그 ─────────────────────────
     listTags: () => rest('/nfc_tags?select=*&order=created_at.asc', {}, '링 목록을 불러오지 못했어요.'),
     async addTag(tag) {

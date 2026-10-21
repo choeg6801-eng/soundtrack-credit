@@ -320,3 +320,26 @@ create policy "locations: suggest" on public.filming_locations for insert to aut
   with check (submitted_by = (select auth.uid()) and source = 'user' and status = 'pending');
 revoke update, delete on public.filming_locations from anon, authenticated;
 revoke insert on public.filming_locations from anon;
+
+
+-- ─────────────────────────────────────────────
+-- 8) 보고 싶은 영화 (워치리스트)
+-- ─────────────────────────────────────────────
+create table if not exists public.watchlist (
+  user_id        uuid not null default auth.uid() references auth.users (id) on delete cascade,
+  movie_id       integer not null,
+  title          text not null check (char_length(title) between 1 and 120),
+  original_title text check (char_length(original_title) <= 200),
+  poster_url     text check (char_length(poster_url) <= 500),
+  release_year   smallint,
+  genres         text[] not null default '{}' check (cardinality(genres) <= 10),
+  rating         real,
+  created_at     timestamptz not null default now(),
+  primary key (user_id, movie_id)
+);
+alter table public.watchlist enable row level security;
+drop policy if exists "watchlist: own rows" on public.watchlist;
+create policy "watchlist: own rows" on public.watchlist
+  for all to authenticated
+  using (user_id = (select auth.uid())) with check (user_id = (select auth.uid()));
+revoke all on public.watchlist from anon;

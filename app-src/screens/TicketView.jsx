@@ -4,6 +4,7 @@ import { I } from '../ui/icons.jsx';
 import { MOODS, byId } from '../lib/catalog.js';
 import { server } from '../lib/server.js';
 import { fetchWeather } from '../lib/weather.js';
+import { renderShareCard, FORMATS } from '../lib/sharecard.js';
 import { fmtDate, fmtSec, links, toLocalInput, fromLocalInput } from '../lib/util.js';
 
 const MAX = 30;
@@ -357,6 +358,44 @@ function Place({ ticket, onChange }) {
   );
 }
 
+// ── 공유 카드 ─────────────────────────────
+function ShareSheet({ ticket, onClose }) {
+  const { toast } = useApp();
+  const [format, setFormat] = useState('story');
+  const [card, setCard] = useState(null); // { blob, url }
+  useEffect(() => {
+    let alive = true, url = null;
+    setCard(null);
+    renderShareCard(ticket, format).then((blob) => {
+      if (!alive) return;
+      url = URL.createObjectURL(blob);
+      setCard({ blob, url });
+    }).catch(() => toast('카드를 만들지 못했어요', true));
+    return () => { alive = false; if (url) URL.revokeObjectURL(url); };
+  }, [format]);
+
+  const name = `soundtrack-credit-${(ticket.original_title || ticket.title).replace(/[^a-zA-Z0-9가-힣]+/g, '-').slice(0, 40)}-${format}.png`;
+  const file = card ? new File([card.blob], name, { type: 'image/png' }) : null;
+  const canShare = file && navigator.canShare && navigator.canShare({ files: [file] });
+
+  return (
+    <Sheet title="공유 카드" onClose={onClose}>
+      <div className="seg" role="group" aria-label="카드 크기" style={{ marginTop: 0 }}>
+        {Object.entries(FORMATS).map(([k, f]) => <button key={k} type="button" aria-pressed={format === k} onClick={() => setFormat(k)}>{f.label}</button>)}
+      </div>
+      <div style={{ display: 'flex', justifyContent: 'center', background: 'var(--bg)', borderRadius: 16, padding: 12, minHeight: 280 }}>
+        {card ? <img className="share-preview" src={card.url} alt={`${ticket.title} 공유 카드 미리보기`} style={{ maxHeight: '56vh', width: 'auto', borderRadius: 12, boxShadow: 'var(--shadow)' }} /> : <Loading text="카드 만드는 중" />}
+      </div>
+      <p className="faint small" style={{ margin: '12px 0 0' }}>한 줄 감상(없으면 보이스 메모 글)·좌석·날씨·OST·무드가 함께 들어가요. 저장한 뒤 인스타그램 스토리나 피드에서 사진으로 올리면 돼요.</p>
+      <div className="actions">
+        <button className="btn ghost" onClick={onClose}>닫기</button>
+        {card && <a className="btn" href={card.url} download={name}>이미지 저장</a>}
+        {canShare && <button className="btn primary" onClick={() => navigator.share({ files: [file], title: ticket.title, text: '#시네필기록 #영화OST여운' }).catch(() => {})}><I.share />공유하기</button>}
+      </div>
+    </Sheet>
+  );
+}
+
 // ── 정보 수정 ─────────────────────────────
 function EditSheet({ ticket, onClose, onSave }) {
   const [when, setWhen] = useState(toLocalInput(new Date(ticket.watched_at)));
@@ -390,6 +429,7 @@ export function TicketView({ id, query }) {
   const [missing, setMissing] = useState(false);
   const [edit, setEdit] = useState(false);
   const [del, setDel] = useState(false);
+  const [share, setShare] = useState(false);
 
   useEffect(() => {
     let alive = true;
@@ -437,9 +477,11 @@ export function TicketView({ id, query }) {
         <div><Ost ticket={t} onChange={update} /><Place ticket={t} onChange={update} /></div>
       </div>
       <div className="row" style={{ marginTop: 22 }}>
+        <button className="btn primary" onClick={() => setShare(true)}><I.share />공유 카드 만들기</button>
         <button className="btn" onClick={() => setEdit(true)}><I.edit />관람 정보 수정</button>
         <button className="btn danger" onClick={() => setDel(true)}><I.trash />티켓 삭제</button>
       </div>
+      {share && <ShareSheet ticket={t} onClose={() => setShare(false)} />}
       {edit && <EditSheet ticket={t} onClose={() => setEdit(false)} onSave={(p) => update(p).then(() => toast('저장했어요')).catch(() => {})} />}
       {del && (
         <Sheet title="이 티켓을 삭제할까요?" onClose={() => setDel(false)}>

@@ -34,6 +34,7 @@ function seed() {
       mk(157336, 140, 'I13', '예시 극장 IMAX', [1, '대체로 맑음', 29], ['경이', '그리움'], '오르간 소리에 몸이 의자에 붙어 버렸다.', null),
     ],
     tags: [],
+    watch: [],
   };
 }
 
@@ -104,6 +105,16 @@ export function createLocalBackend() {
       return d;
     },
     async removeVoice(path) { store.del(VOICE + path); },
+
+    // ── 보고 싶은 영화 ──
+    async listWatch() { const d = load(); d.watch = d.watch || []; return delay(d.watch.slice().sort((a, b) => b.created_at.localeCompare(a.created_at)).map((w) => ({ ...w }))); },
+    async addWatch(m) {
+      const d = load(); d.watch = d.watch || [];
+      let row = d.watch.find((w) => w.movie_id === m.movie_id);
+      if (!row) { row = { user_id: 'demo', created_at: new Date().toISOString(), ...m }; d.watch.push(row); save(); }
+      return { ...row };
+    },
+    async removeWatch(movieId) { const d = load(); d.watch = (d.watch || []).filter((w) => w.movie_id !== movieId); save(); },
 
     async listTags() { return delay(load().tags.map((t) => ({ ...t }))); },
     async addTag(tag) { if (load().tags.some((t) => t.id === tag.id)) throw new AppError('이미 연결된 링이에요.', 'duplicate'); const row = { created_at: new Date().toISOString(), last_tap_at: null, ...tag }; load().tags.push(row); save(); return { ...row }; },

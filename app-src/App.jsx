@@ -29,6 +29,7 @@ export function App({ backend, config, init }) {
   const [recovery, setRecovery] = useState(init.recovery);
   const [profile, setProfile] = useState(null);
   const [tickets, setTickets] = useState(null);
+  const [watch, setWatch] = useState(null);
   const [toastNode, toast] = useToast();
 
   useEffect(() => {
@@ -46,8 +47,9 @@ export function App({ backend, config, init }) {
   }, [backend]);
 
   useEffect(() => {
-    if (!user) { setProfile(null); setTickets(null); return; }
+    if (!user) { setProfile(null); setTickets(null); setWatch(null); return; }
     backend.getProfile().then(setProfile).catch(() => setProfile({ theme: 'dark', plan: 'beta' }));
+    backend.listWatch().then(setWatch).catch(() => setWatch([]));
     reloadTickets();
     // 로그인 전에 링을 태그했다면 그 화면으로 이어서 이동
     try {
@@ -73,8 +75,34 @@ export function App({ backend, config, init }) {
   }, [backend, user]);
   useEffect(() => { if (profile && profile.theme) { document.documentElement.dataset.theme = profile.theme; try { localStorage.setItem('sc.theme', profile.theme); } catch (e) { /* 무시 */ } } }, [profile && profile.theme]);
 
-  const ctx = useMemo(() => ({ backend, config, user, profile, setProfile, tickets, setTickets, reloadTickets, toast, go, theme, setTheme, route }),
-    [backend, config, user, profile, tickets, reloadTickets, toast, go, theme, setTheme, route]);
+  // 보고 싶은 영화: 담기·빼기 (화면은 바로 바뀌고, 저장 실패 시 되돌림)
+  const isWanted = useCallback((id) => !!(watch || []).some((w) => w.movie_id === Number(id)), [watch]);
+  const toggleWatch = useCallback(async (m) => {
+    const id = Number(m.id || m.movie_id);
+    if (!id) return;
+    const had = (watch || []).find((w) => w.movie_id === id);
+    if (had) {
+      setWatch((l) => (l || []).filter((w) => w.movie_id !== id));
+      try { await backend.removeWatch(id); toast('보고 싶은 영화에서 뺐어요'); } catch (e) { setWatch((l) => [had, ...(l || [])]); toast(e.message, true); }
+      return;
+    }
+    const row = {
+      movie_id: id, title: String(m.title || '').slice(0, 120), original_title: m.originalTitle || m.original_title || null,
+      poster_url: m.poster || m.poster_url || null, release_year: m.year || m.release_year || null,
+      genres: (m.genres || []).slice(0, 10), rating: m.rating || null,
+    };
+    const temp = { ...row, created_at: new Date().toISOString() };
+    setWatch((l) => [temp, ...(l || [])]);
+    try {
+      const saved = await backend.addWatch(row);
+      setWatch((l) => (l || []).map((w) => (w === temp ? saved : w)));
+      toast('보고 싶은 영화에 담았어요');
+    } catch (e) { setWatch((l) => (l || []).filter((w) => w !== temp)); toast(e.message, true); }
+  }, [backend, watch, toast]);
+  const unwatch = useCallback((id) => { setWatch((l) => (l || []).filter((w) => w.movie_id !== Number(id))); return backend.removeWatch(Number(id)).catch(() => {}); }, [backend]);
+
+  const ctx = useMemo(() => ({ backend, config, user, profile, setProfile, tickets, setTickets, reloadTickets, toast, go, theme, setTheme, route, watch, isWanted, toggleWatch, unwatch }),
+    [backend, config, user, profile, tickets, reloadTickets, toast, go, theme, setTheme, route, watch, isWanted, toggleWatch, unwatch]);
 
   const { path, query } = route;
   const seg = path.split('/').filter(Boolean);

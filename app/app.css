@@ -260,3 +260,19 @@ hr.sep { border: none; border-top: 1px solid var(--line); margin: 18px 0; }
 .switch[aria-checked="true"]::after { transform: translateX(22px); }
 @media (max-width: 899px) { .hide-sm { display: none !important; } }
 @media (min-width: 900px) { .fab { display: none; } }
+
+/* 보고 싶은 영화 */
+.rec-actions { margin-top: 10px; gap: 6px; flex-wrap: wrap; }
+.btn.want svg, .rec-actions .btn svg { width: 16px; height: 16px; }
+.btn.want.on { border-color: var(--accent); color: var(--accent-text); background: color-mix(in srgb, var(--accent) 12%, transparent); }
+.seg.seg3 { grid-template-columns: 1fr 1fr 1fr; }
+.seg.seg3 button { font-size: 14px; padding: 0 6px; }
+.watch-strip { display: block; margin: 0 0 22px; padding: 14px 16px; border-radius: var(--radius); border: 1px solid var(--line); background: var(--card); color: var(--fg); text-decoration: none; transition: border-color .2s; }
+.watch-strip:hover, .watch-strip:focus-visible { border-color: var(--accent); }
+.watch-strip-head { display: flex; justify-content: space-between; align-items: center; gap: 10px; margin-bottom: 12px; }
+.watch-strip-head > span:first-child { display: inline-flex; align-items: center; gap: 8px; font-weight: 600; }
+.watch-strip-head svg { width: 18px; height: 18px; color: var(--accent-text); }
+.watch-strip-row { display: flex; gap: 10px; overflow: hidden; }
+.watch-strip-row .poster { width: 64px; flex: none; border-radius: 8px; }
+.watch-strip-row .poster .ph { font-size: 10px; padding: 6px; }
+.rec-actions .btn.sm { padding: 0 12px; min-height: 38px; font-size: 13.5px; gap: 6px; }
