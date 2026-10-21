@@ -356,3 +356,21 @@ alter table public.tickets drop constraint if exists tickets_platform_check;
 alter table public.tickets add constraint tickets_platform_check check (char_length(platform) <= 30);
 alter table public.tickets drop constraint if exists tickets_date_precision_check;
 alter table public.tickets add constraint tickets_date_precision_check check (date_precision in ('exact', 'day', 'month', 'year', 'unknown'));
+
+
+-- ─────────────────────────────────────────────
+-- 10) AI 추천 사용 기록 (하루 사용량 제한용 · 회원은 추가·조회만, 삭제 불가)
+-- ─────────────────────────────────────────────
+create table if not exists public.ai_requests (
+  id         bigint generated always as identity primary key,
+  user_id    uuid not null default auth.uid() references auth.users (id) on delete cascade,
+  created_at timestamptz not null default now()
+);
+create index if not exists ai_requests_user_idx on public.ai_requests (user_id, created_at desc);
+alter table public.ai_requests enable row level security;
+drop policy if exists "ai: read own" on public.ai_requests;
+drop policy if exists "ai: add own" on public.ai_requests;
+create policy "ai: read own" on public.ai_requests for select to authenticated using (user_id = (select auth.uid()));
+create policy "ai: add own" on public.ai_requests for insert to authenticated with check (user_id = (select auth.uid()));
+revoke update, delete on public.ai_requests from anon, authenticated;
+revoke all on public.ai_requests from anon;

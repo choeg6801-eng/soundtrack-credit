@@ -9,5 +9,6 @@ module.exports = async function handler(req, res) {
     supabaseAnonKey: url && anon ? anon : null,
     movies: Boolean(process.env.TMDB_API_KEY),
     accountDeletion: Boolean(url && process.env.SUPABASE_SERVICE_ROLE_KEY),
+    ai: Boolean(url && anon && process.env.ANTHROPIC_API_KEY),
   });
 };

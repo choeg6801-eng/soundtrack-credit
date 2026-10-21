@@ -51,6 +51,9 @@ Vercel 프로젝트 → **Settings → Environment Variables** 에 아래를 추
 | `SUPABASE_ANON_KEY` | anon public 키 | 체험 모드로 동작 |
 | `SUPABASE_SERVICE_ROLE_KEY` | service_role 키 | 회원 탈퇴 버튼이 비활성화 |
 | `TMDB_API_KEY` | TMDB API 키 또는 읽기 토큰 | 기본 영화 15편 안에서만 검색·추천 |
+| `ANTHROPIC_API_KEY` | Claude API 키 (console.anthropic.com) | ‘AI 추천’ 탭이 미리보기로만 동작 |
+| `ANTHROPIC_MODEL` | (선택) 기본 `claude-haiku-5-5` | — |
+| `AI_DAILY_LIMIT` | (선택) 회원 1명당 하루 AI 추천 횟수, 기본 10 | — |
 
 **확인:** 브라우저에서 `https://내도메인/api/config` 를 열어 `"supabaseUrl"` 에 주소가 보이면 연결 완료입니다.
 
@@ -119,3 +122,10 @@ tools/dev-server.js   로컬 실행: node tools/dev-server.js → http://localho
 ---
 
 출시 전에 해야 할 일(사업자, 결제, 라이선스, 하드웨어, 비용)은 **`LAUNCH.md`** 에 정리했습니다.
+
+
+### AI 추천 켜기
+1. console.anthropic.com 가입 → 결제 수단 등록 → **API Keys** 에서 키 만들기
+2. Vercel → Settings → Environment Variables 에 `ANTHROPIC_API_KEY` 로 넣고 다시 배포
+3. 비용: 기본 모델(Haiku)은 추천 1번에 대략 1~2원 수준입니다. 회원당 하루 10번(`AI_DAILY_LIMIT`)으로 제한돼요. Anthropic 콘솔에서 월 사용 한도를 꼭 걸어 두세요.
+4. 키는 서버(Vercel)에만 두고 절대 브라우저 코드나 GitHub 에 올리지 마세요.

@@ -11,7 +11,18 @@ async function get(path) {
   }
 }
 
+async function post(path, body, token) {
+  try {
+    const r = await fetch(path, { method: 'POST', headers: { 'Content-Type': 'application/json', Accept: 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) }, body: JSON.stringify(body) });
+    const data = await r.json().catch(() => null);
+    return { ok: r.ok, status: r.status, data };
+  } catch (e) {
+    return { ok: false, status: 0, data: null };
+  }
+}
+
 export const server = {
+  aiRecommend: (body, token) => post('/api/ai-recommend', body, token),
   config: () => get('/api/config'),
   search: (q) => get(`/api/movies?q=${encodeURIComponent(q)}`),
   movie: (id) => get(`/api/movies?id=${id}`),

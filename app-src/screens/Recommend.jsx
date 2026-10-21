@@ -4,6 +4,7 @@ import { I } from '../ui/icons.jsx';
 import { recommendFromCatalog, discoverFromCatalog, tasteGenres, moodGenres, GENRE_CHOICES, MOODS } from '../lib/catalog.js';
 import { server } from '../lib/server.js';
 import { count, links, fmtDate } from '../lib/util.js';
+import { whenDate } from '../lib/when.js';
 
 export function WantButton({ m }) {
   const { isWanted, toggleWatch } = useApp();
@@ -164,6 +165,111 @@ export function FromTaste({ list, title = '어떤 영화가 끌리세요?' }) {
   );
 }
 
+// ── 내 기록을 아는 AI 추천 ─────────────────
+const AI_KEY = 'sc.ai.v1.';
+function aiPayload(list, taste, watch) {
+  return {
+    history: list.slice(0, 40).map((t) => ({
+      movie_id: t.movie_id, title: t.title, original_title: t.original_title, release_year: t.release_year, genres: t.genres,
+      moods: t.moods, review: t.review, transcript: t.transcript, watch_type: t.watch_type, platform: t.platform, when: whenDate(t),
+    })),
+    taste: { genres: taste.genres || [], moods: taste.moods || [] },
+    watch: (watch || []).map((w) => w.title),
+    exclude: [...list.map((t) => t.movie_id), ...(watch || []).map((w) => w.movie_id)].filter(Boolean),
+  };
+}
+const aiSig = (list, taste) => JSON.stringify([list.map((t) => `${t.id}:${t.updated_at || ''}`), taste.genres || [], taste.moods || []]);
+
+// AI 키가 없을 때(체험 모드 등) 보여 주는 미리보기: 내 기록의 무드·감상을 짚어서 이유를 만들어 줌
+function previewRecs(list, tasteG) {
+  const recs = recommendFromCatalog(list, tasteG, 6);
+  const topMoods = count(list.flatMap((t) => t.moods || [])).slice(0, 2).map((x) => x[0]);
+  const topGenres = count(list.flatMap((t) => t.genres || [])).slice(0, 2).map((x) => x[0]);
+  const summary = topMoods.length
+    ? `보고 나서 ‘${topMoods.join('’, ‘')}’ 같은 여운이 오래 남는 영화를 좋아하시고, ${topGenres.length ? `특히 ${topGenres.join('·')} 영화를 자주 보셨어요.` : '감정선이 섬세한 영화를 자주 보셨어요.'}`
+    : '기록하신 영화들을 보면 이야기와 음악이 오래 남는 영화를 좋아하시는 것 같아요.';
+  const results = recs.map((m) => {
+    const seed = list.find((t) => t.title === m.seed) || {};
+    const note = String(seed.review || seed.transcript || '').trim();
+    const mood = (m.sharedMoods || [])[0];
+    const reason = note
+      ? `‘${seed.title}’에 “${note.length > 26 ? note.slice(0, 26) + '…' : note}”라고 남기셨죠. ${m.title}도 ${mood ? `‘${mood}’이 오래 남는` : '그 감정을 다시 느끼게 해 줄'} 영화예요.`
+      : `‘${seed.title}’에서 ${mood ? `‘${mood}’이 남으셨다면` : '좋았던 분위기를 다시 느끼고 싶다면'}, ${m.title}${m.ost ? `의 ‘${m.ost}’` : ''}가 비슷한 여운을 줄 거예요.`;
+    return { ...m, reason, because: m.becauseTitles || [] };
+  });
+  return { summary, results, preview: true };
+}
+
+function AiCard({ m }) {
+  return (
+    <article className="rec-card ai-card">
+      <Poster src={m.poster} title={m.title} />
+      <div style={{ minWidth: 0 }}>
+        <h3>{m.title}</h3>
+        <div className="faint tiny">{[m.year, (m.genres || []).slice(0, 3).join('·')].filter(Boolean).join(' · ')}</div>
+        <p className="ai-reason">{m.reason}</p>
+        {(m.because || []).length > 0 && <div className="tags">{m.because.slice(0, 2).map((x) => <span key={x}>‘{x}’ 기록에서</span>)}</div>}
+        <div className="row rec-actions">
+          {m.id ? <WantButton m={m} /> : null}
+          {m.id ? <a className="btn sm" href={`#/add?movie=${m.id}`}>봤어요</a> : null}
+          <a className="btn sm ghost" href={links.naver(`${m.title} 영화`)} target="_blank" rel="noopener">정보 보기</a>
+        </div>
+      </div>
+    </article>
+  );
+}
+
+export function AiRecs({ list }) {
+  const { config, backend, user, profile, watch, toast } = useApp();
+  const taste = (profile && profile.taste) || {};
+  const key = AI_KEY + ((user && user.id) || 'x');
+  const sig = aiSig(list, taste);
+  const live = Boolean(config.ai) && backend.mode !== 'demo';
+  const [res, setRes] = useState(() => { try { return JSON.parse(localStorage.getItem(key) || 'null'); } catch (e) { return null; } });
+  const [busy, setBusy] = useState(false);
+  const [err, setErr] = useState('');
+  const canAsk = list.length > 0 || (taste.genres || []).length > 0 || (taste.moods || []).length > 0;
+
+  const ask = async () => {
+    setErr(''); setBusy(true);
+    let data;
+    if (live) {
+      const r = await server.aiRecommend(aiPayload(list, taste, watch), backend.token());
+      if (!r.ok || !r.data || !r.data.results) { setErr((r.data && r.data.error) || 'AI 추천을 받지 못했어요. 잠시 후 다시 시도해 주세요.'); setBusy(false); return; }
+      data = r.data;
+    } else {
+      await new Promise((ok) => setTimeout(ok, 500));
+      data = previewRecs(list, tasteGenres(taste.genres || [], taste.moods || []));
+    }
+    const next = { ...data, sig, at: new Date().toISOString() };
+    setRes(next);
+    try { localStorage.setItem(key, JSON.stringify(next)); } catch (e) { /* 무시 */ }
+    setBusy(false);
+    if (!data.results.length) toast('추천할 영화를 찾지 못했어요. 다시 시도해 보세요.', true);
+  };
+
+  if (!canAsk) return <div className="empty"><I.spark /><h2>AI가 읽을 기록이 아직 없어요</h2><p>본 영화를 한 편 이상 기록하거나 ‘취향 찾기’에서 취향을 고르면, 그 기록을 읽고 추천해 드려요.</p><a className="btn primary" href="#/add"><I.plus />티켓 등록</a></div>;
+
+  return (
+    <>
+      <section className="card ai-intro" aria-labelledby="ai-h" style={{ marginBottom: 18 }}>
+        <div className="card-title"><h2 id="ai-h"><I.spark />내 기록을 읽은 AI 추천</h2>{res && res.preview && <span className="pill">미리보기</span>}</div>
+        <p className="muted small" style={{ margin: 0 }}>기록한 {list.length}편의 <b>남은 여운·한 줄 감상·보이스 메모 글</b>을 AI가 읽고, 왜 나에게 맞는지까지 설명해 줘요. 검색창의 AI는 모르는 ‘나의 기록’이 바탕이에요.</p>
+        {res && res.summary && <blockquote className="ai-summary">“{res.summary}”</blockquote>}
+        <div className="row" style={{ marginTop: 14, gap: 10, alignItems: 'center' }}>
+          <button className="btn primary" disabled={busy} onClick={ask}><I.spark />{busy ? 'AI가 기록을 읽는 중…' : res ? '다시 추천받기' : 'AI에게 추천받기'}</button>
+          {res && <span className="faint tiny">{fmtDate(res.at)}{res.sig !== sig ? ' · 그 뒤로 기록이 바뀌었어요' : ''}{res.remaining != null ? ` · 오늘 ${res.remaining}번 남음` : ''}</span>}
+        </div>
+        {err && <p className="error" role="alert">{err}</p>}
+        <p className="faint tiny" style={{ margin: '12px 0 0' }}>{live
+          ? '추천을 만들 때 영화 제목·장르·무드·감상 글이 AI(Anthropic Claude)로 전달돼요. 이메일 같은 계정 정보는 보내지 않아요.'
+          : '지금은 AI 연결 전 미리보기예요. 내 기록의 무드·감상을 짚어 기본 영화 안에서 골랐어요. 운영자가 AI 키를 연결하면 전 세계 영화에서 AI가 직접 골라 줘요.'}</p>
+      </section>
+      {busy && !res ? <Skeletons /> : res && res.results.length > 0 && <div className="recs">{res.results.map((m, i) => <AiCard key={m.id || `${m.title}-${i}`} m={m} />)}</div>}
+    </>
+  );
+}
+
 // ── 보고 싶은 영화 ──────────────────────────
 const WSORTS = [['added', '담은 순'], ['rating', '평점 높은 순'], ['year', '최신 개봉 순']];
 export function WatchList() {
@@ -214,8 +320,8 @@ export function Recommend() {
   const { tickets, profile, route, watch } = useApp();
   const list = tickets || [];
   const want = route.query.get('tab');
-  const [tab, setTab] = useState(want === 'watch' ? 'watch' : list.length ? 'history' : 'taste');
-  useEffect(() => { if (want === 'watch') setTab('watch'); }, [want]);
+  const [tab, setTab] = useState(want === 'watch' || want === 'ai' ? want : list.length ? 'history' : 'taste');
+  useEffect(() => { if (want === 'watch' || want === 'ai') setTab(want); }, [want]);
   const taste = (profile && profile.taste) || {};
   const tasteG = tasteGenres(taste.genres || [], taste.moods || []);
   const topMoods = count(list.flatMap((t) => t.moods || [])).slice(0, 3).map((x) => x[0]);
@@ -226,17 +332,18 @@ export function Recommend() {
         <div>
           <p className="kicker">NEXT FEATURE</p>
           <h1>당신의 여운과 닮은 다음 영화</h1>
-          <p className="muted">{tab === 'watch' ? '담아 둔 영화를 한눈에 보고, 다 보면 바로 티켓으로 기록하세요.' : tab === 'history'
+          <p className="muted">{tab === 'ai' ? '내가 남긴 여운과 감상을 AI가 읽고, 다음에 볼 영화를 이유와 함께 골라 줘요.' : tab === 'watch' ? '담아 둔 영화를 한눈에 보고, 다 보면 바로 티켓으로 기록하세요.' : tab === 'history'
             ? `기록한 ${list.length}편${topMoods.length ? ` · 자주 남은 여운 ${topMoods.join(', ')}` : ''}을 바탕으로 골랐어요.`
             : '좋아하는 장르와 남았으면 하는 여운을 고르면, 그에 맞는 영화를 찾아 드려요.'}</p>
         </div>
       </div>
-      <div className="seg seg3" role="group" aria-label="추천 방식" style={{ maxWidth: 560, margin: '0 0 20px' }}>
-        <button type="button" aria-pressed={tab === 'history'} onClick={() => setTab('history')}>내 기록 기반</button>
-        <button type="button" aria-pressed={tab === 'taste'} onClick={() => setTab('taste')}>취향으로 찾기</button>
+      <div className="seg seg4" role="group" aria-label="추천 방식" style={{ maxWidth: 640, margin: '0 0 20px' }}>
+        <button type="button" aria-pressed={tab === 'ai'} onClick={() => setTab('ai')}>AI 추천</button>
+        <button type="button" aria-pressed={tab === 'history'} onClick={() => setTab('history')}>기록 기반</button>
+        <button type="button" aria-pressed={tab === 'taste'} onClick={() => setTab('taste')}>취향 찾기</button>
         <button type="button" aria-pressed={tab === 'watch'} onClick={() => setTab('watch')}>보고 싶어요{watch && watch.length ? ` ${watch.length}` : ''}</button>
       </div>
-      {tab === 'watch' ? <WatchList /> : tab === 'taste' ? <FromTaste list={list} /> : list.length ? <FromHistory list={list} tasteG={tasteG} /> : (
+      {tab === 'ai' ? <AiRecs list={list} /> : tab === 'watch' ? <WatchList /> : tab === 'taste' ? <FromTaste list={list} /> : list.length ? <FromHistory list={list} tasteG={tasteG} /> : (
         <div className="empty"><I.spark /><h2>아직 기록한 영화가 없어요</h2><p>‘취향으로 찾기’에서 장르와 무드를 고르거나, 본 영화를 기록하면 닮은 영화를 찾아 드려요.</p>
           <div className="row" style={{ justifyContent: 'center' }}><button className="btn primary" onClick={() => setTab('taste')}><I.heart />취향으로 찾기</button><a className="btn" href="#/add"><I.plus />티켓 등록</a></div>
         </div>

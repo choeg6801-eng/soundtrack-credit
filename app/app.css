@@ -283,3 +283,47 @@ hr.sep { border: none; border-top: 1px solid var(--line); margin: 18px 0; }
 .noticket p b { color: var(--fg); }
 .noticket .btn svg { width: 16px; height: 16px; }
 .field small.faint { font-weight: 400; margin-left: 4px; }
+
+/* 1년 전 오늘 */
+.memory { margin: 0 0 18px; padding: 18px; border-radius: var(--radius); background: linear-gradient(135deg, color-mix(in srgb, var(--accent) 14%, var(--card)), var(--card) 60%); border: 1px solid color-mix(in srgb, var(--accent) 40%, var(--line)); }
+.memory-head { display: flex; justify-content: space-between; align-items: center; gap: 10px; margin-bottom: 12px; }
+.memory-head .kicker { margin: 0; }
+.memory-body { display: grid; grid-template-columns: 84px 1fr; gap: 16px; align-items: start; }
+.memory-poster { display: block; }
+.memory h2 { font-size: 20px; margin: 0 0 4px; }
+.memory blockquote, .recap-pick blockquote { margin: 10px 0 0; font-family: var(--serif); font-size: 16px; line-height: 1.55; color: var(--fg); }
+
+/* 연말 결산 */
+.recap-banner { display: grid; gap: 4px; margin: 0 0 18px; padding: 16px 18px; border-radius: var(--radius); border: 1px solid var(--line); background: radial-gradient(120% 140% at 0% 0%, color-mix(in srgb, var(--accent) 22%, transparent), transparent 60%), var(--card); color: var(--fg); text-decoration: none; transition: border-color .2s; }
+.recap-banner:hover, .recap-banner:focus-visible { border-color: var(--accent); }
+.recap-banner .kicker { margin: 0; font-size: 11px; }
+.recap-banner b { font-family: var(--serif); font-size: 20px; }
+.recap-hero { margin: 4px 0 22px; }
+.recap-hero h1 { font-size: clamp(26px, 4.4vw, 40px); line-height: 1.35; }
+.recap-hero h1 em { font-style: normal; color: var(--accent-text); }
+.recap-posters { display: flex; gap: 10px; overflow-x: auto; padding-bottom: 6px; margin-bottom: 18px; scrollbar-width: thin; }
+.recap-posters a { flex: none; width: 92px; }
+.recap-stats { grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); }
+.recap-stats .stat b small { font-family: var(--mono); font-size: 13px; color: var(--accent-text); font-weight: 500; }
+.recap-bars { display: grid; grid-template-columns: repeat(12, 1fr); gap: 6px; height: 150px; align-items: end; margin-top: 8px; }
+.recap-bars > div { display: flex; flex-direction: column; align-items: center; justify-content: flex-end; height: 100%; gap: 4px; }
+.recap-bars i { display: block; width: 100%; max-width: 26px; border-radius: 6px 6px 3px 3px; background: color-mix(in srgb, var(--accent) 50%, transparent); }
+.recap-bars .top i { background: var(--accent); }
+.recap-bars .n { font-family: var(--mono); font-size: 11px; color: var(--muted); min-height: 14px; }
+.recap-bars small { font-family: var(--mono); font-size: 11px; color: var(--faint, var(--muted)); }
+.recap-split { margin-top: 20px; }
+.recap-split .bar { display: flex; height: 12px; border-radius: 999px; overflow: hidden; background: var(--surface); gap: 2px; }
+.recap-split i.c, .dot.c { background: var(--accent); }
+.recap-split i.o, .dot.o { background: #7FA7C9; }
+.recap-split i.h, .dot.h { background: #A58BC4; }
+.dot { display: inline-block; width: 9px; height: 9px; border-radius: 50%; margin-right: 6px; vertical-align: 0; }
+.recap-facts { list-style: none; padding: 0; margin: 18px 0 0; display: grid; gap: 8px; font-size: 14px; color: var(--muted); }
+.recap-facts b { color: var(--fg); }
+
+/* AI 추천 */
+.seg.seg4 { grid-template-columns: repeat(4, 1fr); }
+.seg.seg4 button { font-size: 14px; padding: 0 4px; }
+@media (max-width: 420px) { .seg.seg4 button { font-size: 13px; } }
+.ai-summary { margin: 14px 0 0; padding: 12px 16px; border-left: 3px solid var(--accent); background: var(--surface); border-radius: 0 12px 12px 0; font-family: var(--serif); font-size: 16px; line-height: 1.6; }
+.ai-reason { margin: 8px 0 0; font-size: 14px; line-height: 1.6; color: var(--fg); }
+.ai-card .tags span { color: var(--accent-text); }

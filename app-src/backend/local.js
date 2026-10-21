@@ -25,6 +25,10 @@ function seed() {
       created_at: d.toISOString(), updated_at: d.toISOString(), sample: true,
     };
   };
+  // '1년 전 오늘' 예시: 정확히 1년 전 같은 날 본 영화
+  const yearAgo = mk(5723, 0, 'H08', '예시 극장 2관', [63, '비', 14], ['아련함', '그리움'], '비 오는 날 혼자 본 영화. 엔딩곡이 집에 오는 내내 맴돌았다.', null);
+  const ya = new Date(now); ya.setFullYear(ya.getFullYear() - 1); ya.setHours(20, 10, 0, 0);
+  Object.assign(yearAgo, { watched_at: ya.toISOString(), created_at: ya.toISOString(), updated_at: ya.toISOString() });
   return {
     user: { id: 'demo', email: 'demo@soundtrack.credit' },
     profile: { id: 'demo', nickname: '시네필', theme: 'dark', plan: 'beta' },
@@ -32,6 +36,7 @@ function seed() {
       mk(313369, 16, 'F11', '예시 극장 3관', [0, '맑음', 21], ['아련함', '설렘'], '마지막 5분, 둘의 눈빛만으로 다 설명됐다.', null),
       mk(198277, 60, 'E07', '예시 극장 5관', [61, '비', 24], ['설렘', '청량'], '이어폰 하나 나눠 끼고 밤거리를 걷고 싶어졌다.', null),
       mk(157336, 140, 'I13', '예시 극장 IMAX', [1, '대체로 맑음', 29], ['경이', '그리움'], '오르간 소리에 몸이 의자에 붙어 버렸다.', null),
+      yearAgo,
     ],
     tags: [],
     watch: [],

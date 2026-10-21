@@ -1,6 +1,9 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "cleanUrls": true,
+  "functions": {
+    "api/ai-recommend.js": { "maxDuration": 30 }
+  },
   "headers": [
     {
       "source": "/posters/(.*)",

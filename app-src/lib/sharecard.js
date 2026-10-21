@@ -268,3 +268,6 @@ export async function renderShareCard(ticket, format = 'story') {
     return draw(null); // 포스터 서버가 이미지 복사를 막으면 포스터 없이 그립니다
   }
 }
+
+// 다른 카드(연말 결산 등)에서 함께 쓰는 그리기 도구
+export { C, SERIF, SANS, MONO, loadImage, fontsReady, rr, wrap, cover, placeholderPoster, brand, posterFrame };

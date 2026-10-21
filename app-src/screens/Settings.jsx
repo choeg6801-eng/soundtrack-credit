@@ -19,8 +19,9 @@ export function Settings() {
 
   const exportAll = async () => {
     const tags = await backend.listTags().catch(() => []);
+    const watchlist = await backend.listWatch().catch(() => []);
     downloadJson(`soundtrack-credit-${new Date().toISOString().slice(0, 10)}.json`, {
-      exported_at: new Date().toISOString(), account: user && user.email, profile, tickets, rings: tags,
+      exported_at: new Date().toISOString(), account: user && user.email, profile, tickets, watchlist, rings: tags,
       note: '보이스 메모 음성 파일은 각 티켓 화면에서 재생·저장할 수 있어요.',
     });
   };

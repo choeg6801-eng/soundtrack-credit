@@ -1,4 +1,7 @@
 import { useMemo, useState } from 'react';
+import { memoriesFor, memoryLabel } from '../lib/memories.js';
+import { recapYears, computeRecap } from '../lib/recap.js';
+import { placeOf } from '../lib/when.js';
 import { useApp, Poster } from '../ui/kit.jsx';
 import { I } from '../ui/icons.jsx';
 import { count } from '../lib/util.js';
@@ -42,6 +45,9 @@ export function Book() {
           <div className="stat"><b>{topMood ? topMood[0] : '—'}</b><span>가장 자주 남은 여운</span></div>
         </div>
       )}
+
+      <Memory list={list} />
+      <RecapBanner list={list} />
 
       {wl.length > 0 && (
         <a className="watch-strip" href="#/recommend?tab=watch" aria-label={`보고 싶은 영화 ${wl.length}편 전체 보기`}>
@@ -90,5 +96,55 @@ export function Book() {
       )}
       <a className="btn primary fab" href="#/add" aria-label="티켓 등록"><I.plus />등록</a>
     </>
+  );
+}
+
+const MEM_KEY = 'sc.memory.hidden';
+function Memory({ list }) {
+  const mems = useMemo(() => memoriesFor(list), [list]);
+  const today = new Date().toDateString();
+  const [hidden, setHidden] = useState(() => { try { return localStorage.getItem(MEM_KEY) === today; } catch (e) { return false; } });
+  const [i, setI] = useState(0);
+  if (!mems.length || hidden) return null;
+  const m = mems[i % mems.length];
+  const t = m.t;
+  const quote = t.review || t.transcript || '';
+  const hide = () => { setHidden(true); try { localStorage.setItem(MEM_KEY, today); } catch (e) { /* 무시 */ } };
+  return (
+    <section className="memory" aria-labelledby="mem-h">
+      <div className="memory-head">
+        <p className="kicker" id="mem-h">{memoryLabel(m)}</p>
+        <button type="button" className="linkbtn faint small" onClick={hide}>오늘은 그만 보기</button>
+      </div>
+      <div className="memory-body">
+        <a className="memory-poster" href={`#/ticket/${t.id}`} tabIndex={-1} aria-hidden="true"><Poster src={t.poster_url} title={t.title} /></a>
+        <div style={{ minWidth: 0 }}>
+          <h2>{t.title}</h2>
+          <div className="faint small">{new Date(t.watched_at).getFullYear()}.{String(new Date(t.watched_at).getMonth() + 1).padStart(2, '0')}.{String(new Date(t.watched_at).getDate()).padStart(2, '0')} · {placeOf(t)}{t.weather_text ? ` · ${t.weather_text}` : ''}</div>
+          {quote ? <blockquote>“{quote}”</blockquote> : <p className="muted small" style={{ margin: '10px 0 0' }}>그날 어떤 여운이 남았는지, 지금 한 줄 남겨 보세요.</p>}
+          <div className="row" style={{ gap: 8, marginTop: 12 }}>
+            <a className="btn sm primary" href={`#/ticket/${t.id}`}>{t.voice_path ? <><I.play />그날의 목소리 듣기</> : <><I.ticket />그날의 기억 열기</>}</a>
+            {mems.length > 1 && <button type="button" className="btn sm ghost" onClick={() => setI((x) => x + 1)}>다른 기억 ({(i % mems.length) + 1}/{mems.length})</button>}
+          </div>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+function RecapBanner({ list }) {
+  const years = recapYears(list);
+  const now = new Date();
+  // 1월에는 지난해 결산, 그 외에는 올해 결산(지금까지)
+  const y = now.getMonth() === 0 && years.includes(now.getFullYear() - 1) ? now.getFullYear() - 1 : now.getFullYear();
+  if (!years.includes(y)) return null;
+  const r = computeRecap(list, y);
+  const final = y < now.getFullYear() || now.getMonth() === 11;
+  return (
+    <a className="recap-banner" href={`#/recap?year=${y}`}>
+      <span className="kicker">{y} · YOUR YEAR IN CREDITS</span>
+      <b>{final ? `${y}년 결산이 도착했어요` : `${y}년 지금까지 ${r.total}편`}</b>
+      <span className="faint small">{r.topMood ? `가장 자주 남은 여운은 ‘${r.topMood.name}’` : '올해의 영화 기록을 한 장으로'} · 결산 보기 →</span>
+    </a>
   );
 }
