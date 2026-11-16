@@ -175,7 +175,7 @@ module.exports = async function handler(req, res) {
     const found = await Promise.all(picks.map(verify));
     const ids = new Set();
     results = picks.map((p, i) => (found[i] ? { ...found[i], reason: p.reason, because: p.because } : null))
-      .filter((m) => m && !seenIds.has(m.id) && !ids.has(m.id) && ids.add(m.id));
+      .filter((m) => m && !((m.votes || 0) >= 30 && (m.rating || 0) < 5.5) && !seenIds.has(m.id) && !ids.has(m.id) && ids.add(m.id));
   } else {
     results = picks.map((p) => ({ id: null, title: p.title_ko, originalTitle: p.original_title, year: p.year, poster: null, genres: [], reason: p.reason, because: p.because }));
   }

@@ -1,10 +1,10 @@
 import { useMemo, useState } from 'react';
-import { memoriesFor, memoryLabel } from '../lib/memories.js';
+import { memoriesFor, memoryLabel, groupByYears, hasPastMemories } from '../lib/memories.js';
 import { recapYears, computeRecap } from '../lib/recap.js';
 import { placeOf } from '../lib/when.js';
 import { useApp, Poster } from '../ui/kit.jsx';
 import { I } from '../ui/icons.jsx';
-import { count } from '../lib/util.js';
+import { count, fmtDate } from '../lib/util.js';
 import { whenDate, yearKey, knowsMonth, isCinema } from '../lib/when.js';
 
 export function Book() {
@@ -101,12 +101,17 @@ export function Book() {
 
 const MEM_KEY = 'sc.memory.hidden';
 function Memory({ list }) {
-  const mems = useMemo(() => memoriesFor(list), [list]);
+  const groups = useMemo(() => groupByYears(memoriesFor(list)), [list]);
   const today = new Date().toDateString();
   const [hidden, setHidden] = useState(() => { try { return localStorage.getItem(MEM_KEY) === today; } catch (e) { return false; } });
+  const [g, setG] = useState(0);
   const [i, setI] = useState(0);
-  if (!mems.length || hidden) return null;
-  const m = mems[i % mems.length];
+  if (hidden) return null;
+  if (!groups.length) {
+    return hasPastMemories(list) ? <a className="memory-link" href="#/memories"><I.ticket />지난 해의 오늘엔 무엇을 봤을까요? <span className="faint small">N년 전 기록 보기 →</span></a> : null;
+  }
+  const group = groups[g % groups.length];
+  const m = group.items[i % group.items.length];
   const t = m.t;
   const quote = t.review || t.transcript || '';
   const hide = () => { setHidden(true); try { localStorage.setItem(MEM_KEY, today); } catch (e) { /* 무시 */ } };
@@ -116,15 +121,21 @@ function Memory({ list }) {
         <p className="kicker" id="mem-h">{memoryLabel(m)}</p>
         <button type="button" className="linkbtn faint small" onClick={hide}>오늘은 그만 보기</button>
       </div>
+      {groups.length > 1 && (
+        <div className="chips" role="group" aria-label="몇 년 전" style={{ marginBottom: 14 }}>
+          {groups.map((x, k) => <button key={x.yearsAgo} type="button" className="chip" style={{ minHeight: 34 }} aria-pressed={k === g % groups.length} onClick={() => { setG(k); setI(0); }}>{x.yearsAgo}년 전{x.items.length > 1 ? ` · ${x.items.length}편` : ''}</button>)}
+        </div>
+      )}
       <div className="memory-body">
         <a className="memory-poster" href={`#/ticket/${t.id}`} tabIndex={-1} aria-hidden="true"><Poster src={t.poster_url} title={t.title} /></a>
         <div style={{ minWidth: 0 }}>
           <h2>{t.title}</h2>
-          <div className="faint small">{new Date(t.watched_at).getFullYear()}.{String(new Date(t.watched_at).getMonth() + 1).padStart(2, '0')}.{String(new Date(t.watched_at).getDate()).padStart(2, '0')} · {placeOf(t)}{t.weather_text ? ` · ${t.weather_text}` : ''}</div>
+          <div className="faint small">{fmtDate(t.watched_at, false)} · {placeOf(t)}{t.weather_text ? ` · ${t.weather_text}` : ''}</div>
           {quote ? <blockquote>“{quote}”</blockquote> : <p className="muted small" style={{ margin: '10px 0 0' }}>그날 어떤 여운이 남았는지, 지금 한 줄 남겨 보세요.</p>}
           <div className="row" style={{ gap: 8, marginTop: 12 }}>
             <a className="btn sm primary" href={`#/ticket/${t.id}`}>{t.voice_path ? <><I.play />그날의 목소리 듣기</> : <><I.ticket />그날의 기억 열기</>}</a>
-            {mems.length > 1 && <button type="button" className="btn sm ghost" onClick={() => setI((x) => x + 1)}>다른 기억 ({(i % mems.length) + 1}/{mems.length})</button>}
+            {group.items.length > 1 && <button type="button" className="btn sm ghost" onClick={() => setI((x) => x + 1)}>같은 해 다른 기억 ({(i % group.items.length) + 1}/{group.items.length})</button>}
+            <a className="btn sm ghost" href="#/memories">모든 해의 오늘 →</a>
           </div>
         </div>
       </div>

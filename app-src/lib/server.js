@@ -26,6 +26,7 @@ export const server = {
   config: () => get('/api/config'),
   search: (q) => get(`/api/movies?q=${encodeURIComponent(q)}`),
   movie: (id) => get(`/api/movies?id=${id}`),
+  movieDetail: (id) => get(`/api/movies?id=${id}&detail=1`),
   recommend: (ids, exclude, genres) => get(`/api/recommend?ids=${ids.join(',')}&exclude=${exclude.join(',')}&genres=${encodeURIComponent(genres.join(','))}`),
   discover: (genres, boost, exclude, page = 1) => get(`/api/discover?genres=${encodeURIComponent(genres.join(','))}&boost=${encodeURIComponent(boost.join(','))}&exclude=${exclude.join(',')}&page=${page}`),
   locations: (id) => get(`/api/locations?id=${id}`),

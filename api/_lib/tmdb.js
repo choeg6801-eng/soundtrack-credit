@@ -36,6 +36,8 @@ function movie(m) {
     overview: (m.overview || '').slice(0, 400),
     runtime: m.runtime || null,
     popularity: m.popularity || 0,
+    rating: m.vote_average ? Math.round(m.vote_average * 10) / 10 : null,
+    votes: m.vote_count || 0,
   };
 }
 

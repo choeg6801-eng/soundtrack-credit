@@ -5,6 +5,7 @@ import { recommendFromCatalog, discoverFromCatalog, tasteGenres, moodGenres, GEN
 import { server } from '../lib/server.js';
 import { count, links, fmtDate } from '../lib/util.js';
 import { whenDate } from '../lib/when.js';
+import { InfoButton } from '../ui/MovieInfo.jsx';
 
 export function WantButton({ m }) {
   const { isWanted, toggleWatch } = useApp();
@@ -29,7 +30,7 @@ function RecCard({ m, reason, rank }) {
         <div className="row rec-actions">
           <WantButton m={m} />
           <a className="btn sm" href={`#/add?movie=${m.id}`}>봤어요</a>
-          <a className="btn sm ghost" href={links.naver(`${m.title} 영화`)} target="_blank" rel="noopener">정보 보기</a>
+          <InfoButton m={m} />
         </div>
       </div>
     </article>
@@ -212,7 +213,7 @@ function AiCard({ m }) {
         <div className="row rec-actions">
           {m.id ? <WantButton m={m} /> : null}
           {m.id ? <a className="btn sm" href={`#/add?movie=${m.id}`}>봤어요</a> : null}
-          <a className="btn sm ghost" href={links.naver(`${m.title} 영화`)} target="_blank" rel="noopener">정보 보기</a>
+          <InfoButton m={m} />
         </div>
       </div>
     </article>
@@ -305,7 +306,7 @@ export function WatchList() {
               <div className="faint tiny" style={{ marginTop: 6 }}>{fmtDate(w.created_at, false)}에 담음</div>
               <div className="row rec-actions">
                 <a className="btn sm primary" href={`#/add?movie=${w.movie_id}`}><I.ticket />봤어요 · 기록</a>
-                <a className="btn sm ghost" href={links.naver(`${w.title} 영화`)} target="_blank" rel="noopener">정보 보기</a>
+                <InfoButton m={{ ...w, id: w.movie_id, poster: w.poster_url, year: w.release_year }} />
                 <button type="button" className="btn sm ghost" onClick={() => toggleWatch(w)} aria-label={`${w.title} 목록에서 빼기`}><I.trash />빼기</button>
               </div>
             </div>

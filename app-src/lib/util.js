@@ -51,4 +51,10 @@ export const links = {
   gmap: (q) => `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(q)}`,
   kmap: (q) => `https://map.kakao.com/?q=${encodeURIComponent(q)}`,
   naver: (q) => `https://search.naver.com/search.naver?query=${encodeURIComponent(q)}`,
+  // 네이버에서 영화 정보 카드가 뜨도록: 따옴표·' - 영문 부제' 같은 군더더기를 빼고 '영화 제목' 형태로 검색
+  naverMovie: (title, year) => {
+    const t = String(title || '').replace(/^['"‘“]+|['"’”]+$/g, '').replace(/['"‘’“”]/g, '').split(/\s+-\s+/)[0].trim();
+    return `https://search.naver.com/search.naver?where=nexearch&query=${encodeURIComponent(`영화 ${t}`)}`;
+  },
+  youtubeTrailer: (title, year) => `https://www.youtube.com/results?search_query=${encodeURIComponent(`${title} ${year || ''} 예고편`)}`,
 };

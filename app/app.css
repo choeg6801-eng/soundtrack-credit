@@ -327,3 +327,36 @@ hr.sep { border: none; border-top: 1px solid var(--line); margin: 18px 0; }
 .ai-summary { margin: 14px 0 0; padding: 12px 16px; border-left: 3px solid var(--accent); background: var(--surface); border-radius: 0 12px 12px 0; font-family: var(--serif); font-size: 16px; line-height: 1.6; }
 .ai-reason { margin: 8px 0 0; font-size: 14px; line-height: 1.6; color: var(--fg); }
 .ai-card .tags span { color: var(--accent-text); }
+
+/* N년 전 오늘 */
+.memory-link { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 10px; margin: 0 0 18px; padding: 14px 16px; border-radius: var(--radius); border: 1px dashed var(--line-strong); color: var(--fg); text-decoration: none; font-weight: 600; }
+.memory-link svg { width: 18px; height: 18px; color: var(--accent-text); }
+.memory-link:hover, .memory-link:focus-visible { border-color: var(--accent); }
+.mem-controls { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 12px; margin: 0 0 22px; }
+.mem-controls .btn.sm { padding: 0 12px; }
+.mem-controls svg { width: 16px; height: 16px; }
+.mem-years { display: grid; gap: 26px; }
+.mem-year h2 { display: flex; align-items: baseline; gap: 10px; font-size: 22px; margin: 0 0 12px; padding-bottom: 8px; border-bottom: 1px solid var(--line); }
+.mem-year h2 b { font-family: var(--serif); color: var(--accent-text); }
+.mem-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 14px; }
+.mem-item { display: grid; grid-template-columns: 92px 1fr; gap: 14px; padding: 14px; border-radius: var(--radius); background: var(--card); border: 1px solid var(--line); color: var(--fg); text-decoration: none; transition: border-color .2s; }
+.mem-item:hover, .mem-item:focus-visible { border-color: var(--accent); }
+.mem-item .kicker { font-size: 10px; }
+.mem-item h3 { font-family: var(--sans); font-size: 17px; margin: 6px 0 2px; }
+.mem-item blockquote { margin: 8px 0 0; font-family: var(--serif); font-size: 15px; line-height: 1.55; }
+.mem-item .tags svg { width: 12px; height: 12px; vertical-align: -1px; margin-right: 3px; }
+
+/* 영화 정보 */
+.mi-head { display: grid; grid-template-columns: 96px 1fr; gap: 16px; align-items: start; }
+.mi-head h3 { margin: 0; font-size: 20px; }
+.mi-rating { margin-top: 8px; font-family: var(--mono); color: var(--accent-text); font-weight: 600; }
+.mi-tagline { margin: 16px 0 0; font-family: var(--serif); color: var(--accent-text); }
+.mi-overview { margin: 12px 0 0; line-height: 1.7; font-size: 15px; white-space: pre-line; }
+.mi-credits { display: grid; grid-template-columns: auto 1fr; gap: 6px 14px; margin: 16px 0 0; font-size: 14px; }
+.mi-credits dt { color: var(--muted); }
+.mi-credits dd { margin: 0; }
+.mi-where { display: grid; gap: 8px; margin: 18px 0 0; padding: 14px; border-radius: 14px; background: var(--surface); font-size: 14px; }
+.mi-where > div { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
+.mi-where > div > span:first-child { min-width: 34px; }
+.mi-links { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 18px; }
+.mi-links svg { width: 16px; height: 16px; }

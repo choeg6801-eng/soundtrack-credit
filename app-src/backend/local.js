@@ -29,6 +29,14 @@ function seed() {
   const yearAgo = mk(5723, 0, 'H08', '예시 극장 2관', [63, '비', 14], ['아련함', '그리움'], '비 오는 날 혼자 본 영화. 엔딩곡이 집에 오는 내내 맴돌았다.', null);
   const ya = new Date(now); ya.setFullYear(ya.getFullYear() - 1); ya.setHours(20, 10, 0, 0);
   Object.assign(yearAgo, { watched_at: ya.toISOString(), created_at: ya.toISOString(), updated_at: ya.toISOString() });
+  // 'N년 전' 예시: 3년 전 같은 날 OTT로, 2년 전 이틀 뒤 극장에서
+  const ago = (id, years, days, extra) => {
+    const t = mk(id, 0, null, null, [null, null, null], extra.moods, extra.review, null);
+    const d = new Date(now); d.setFullYear(d.getFullYear() - years); d.setDate(d.getDate() + days); d.setHours(21, 0, 0, 0);
+    return Object.assign(t, { watched_at: d.toISOString(), created_at: d.toISOString(), updated_at: d.toISOString() }, extra.patch);
+  };
+  const threeAgo = ago(76, 3, 0, { moods: ['설렘', '아련함'], review: '새벽까지 잠이 안 와서 다시 본 영화. 대화만으로도 이렇게 설렐 수 있다니.', patch: { watch_type: 'ott', platform: '넷플릭스', date_precision: 'day', theater: null, seat: null, weather_code: null, weather_text: null, temp_c: null } });
+  const twoAgo = ago(14160, 2, 2, { moods: ['포근함', '그리움'], review: '첫 10분에 울어 버렸다. 엄마랑 같이 본 날.', patch: { theater: '예시 극장 1관', seat: 'D09', weather_code: 1, weather_text: '대체로 맑음', temp_c: 17 } });
   return {
     user: { id: 'demo', email: 'demo@soundtrack.credit' },
     profile: { id: 'demo', nickname: '시네필', theme: 'dark', plan: 'beta' },
@@ -37,6 +45,8 @@ function seed() {
       mk(198277, 60, 'E07', '예시 극장 5관', [61, '비', 24], ['설렘', '청량'], '이어폰 하나 나눠 끼고 밤거리를 걷고 싶어졌다.', null),
       mk(157336, 140, 'I13', '예시 극장 IMAX', [1, '대체로 맑음', 29], ['경이', '그리움'], '오르간 소리에 몸이 의자에 붙어 버렸다.', null),
       yearAgo,
+      twoAgo,
+      threeAgo,
     ],
     tags: [],
     watch: [],

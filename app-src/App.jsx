@@ -10,6 +10,7 @@ import { Rings, Tap } from './screens/Rings.jsx';
 import { Settings } from './screens/Settings.jsx';
 import { Welcome } from './screens/Welcome.jsx';
 import { Recap } from './screens/Recap.jsx';
+import { Memories } from './screens/Memories.jsx';
 
 function parse(hash) {
   const raw = hash.replace(/^#/, '') || '/';
@@ -120,12 +121,13 @@ export function App({ backend, config, init }) {
   else if (seg[0] === 'ticket' && seg[1]) screen = <TicketView id={seg[1]} query={query} />;
   else if (seg[0] === 'recommend') screen = <Recommend />;
   else if (seg[0] === 'recap') screen = <Recap query={query} />;
+  else if (seg[0] === 'memories') screen = <Memories query={query} />;
   else if (seg[0] === 'rings') screen = <Rings />;
   else if (seg[0] === 'settings') screen = <Settings />;
   else if (seg[0] === 'tap' && seg[1]) screen = <Tap tagId={seg[1]} />;
   else screen = <Book />;
 
-  const active = '/' + (['ticket', 'add', 'recap'].includes(seg[0]) || !seg[0] ? '' : seg[0]);
+  const active = '/' + (['ticket', 'add', 'recap', 'memories'].includes(seg[0]) || !seg[0] ? '' : seg[0]);
 
   return (
     <AppCtx.Provider value={ctx}>
